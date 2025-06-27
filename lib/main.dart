@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
+import 'package:travelmate/config_loader.dart';
 
 import '../widgets/custom_error_widget.dart';
 import 'core/app_export.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+await Config.load();
   // Initialize Supabase
   try {
     SupabaseService();
