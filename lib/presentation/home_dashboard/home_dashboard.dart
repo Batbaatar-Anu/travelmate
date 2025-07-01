@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:travelmate/presentation/home_dashboard/profile_tab_widget.dart';
 
 import '../../core/app_export.dart';
 import './widgets/recent_trip_card_widget.dart';
@@ -189,19 +191,15 @@ class _HomeDashboardState extends State<HomeDashboard>
       _currentTabIndex = index;
     });
 
-    // Navigate to different screens based on tab
+    // Remove navigation from case 3
     switch (index) {
       case 0:
-        // Already on home
         break;
       case 1:
         Navigator.pushNamed(context, '/home-detail');
         break;
       case 2:
         Navigator.pushNamed(context, '/push-notification-settings');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/user-login');
         break;
     }
   }
@@ -218,20 +216,84 @@ class _HomeDashboardState extends State<HomeDashboard>
             controller: _scrollController,
             slivers: [
               _buildStickyHeader(),
-              _buildHeroSection(),
-              _buildRecentTripsSection(),
-              _buildRecommendedDestinationsSection(),
-              _buildTravelTipsSection(),
-              _buildUpcomingRemindersSection(),
-              SliverToBoxAdapter(
-                child: SizedBox(height: 10.h),
-              ),
+              if (_currentTabIndex == 0) ...[
+                _buildHeroSection(),
+                _buildRecentTripsSection(),
+                _buildRecommendedDestinationsSection(),
+                _buildTravelTipsSection(),
+                _buildUpcomingRemindersSection(),
+              ] else if (_currentTabIndex == 3)
+                _buildProfileTab(context),
+              SliverToBoxAdapter(child: SizedBox(height: 10.h)),
             ],
           ),
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
       floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildProfileTab(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.all(4.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Profile",
+              style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            ListTile(
+              leading:
+                  Icon(Icons.person, color: AppTheme.lightTheme.primaryColor),
+              title: Text("Alex Johnson"),
+              subtitle: Text("alex@example.com"),
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.settings),
+              title: Text("Settings"),
+              onTap: () => Navigator.pushNamed(context, '/settings'),
+            ),
+            ListTile(
+  leading: Icon(Icons.logout, color: Colors.red),
+  title: Text("Log Out", style: TextStyle(color: Colors.red)),
+  onTap: () async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Log Out"),
+        content: Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel")),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text("Log Out")),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final auth = AuthService();
+      await auth.signOut();
+
+      if (context.mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/user-login',
+          (route) => false,
+        );
+      }
+    }
+  },
+),
+
+          ],
+        ),
+      ),
     );
   }
 

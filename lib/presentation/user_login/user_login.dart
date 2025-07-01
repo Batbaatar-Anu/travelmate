@@ -36,19 +36,22 @@ class _UserLoginState extends State<UserLogin> with TickerProviderStateMixin {
   }
 
   void _initializeAuth() async {
-    try {
-      await _authService.initialize();
+  try {
+    await _authService.initialize();
 
-      // Check if user is already signed in
-      if (_authService.isSignedIn) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.pushReplacementNamed(context, '/home-dashboard');
-        });
-      }
-    } catch (e) {
-      debugPrint('Auth initialization error: $e');
-    }
+    final session = Supabase.instance.client.auth.currentSession;
+
+// Redirect to home only if session exists and email is confirmed
+if (session != null && session.user?.emailConfirmedAt != null) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    Navigator.pushReplacementNamed(context, '/home-dashboard');
+  });
+}
+  } catch (e) {
+    debugPrint('Auth initialization error: $e');
   }
+}
+
 
   void _setupAnimations() {
     _animationController = AnimationController(
