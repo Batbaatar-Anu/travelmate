@@ -696,7 +696,7 @@ class _HomeDashboardState extends State<HomeDashboard>
 
   Widget _buildFloatingActionButton() {
     return FloatingActionButton.extended(
-      onPressed: () => Navigator.pushNamed(context, '/home-detail'),
+      onPressed: () => Navigator.pushNamed(context, '/new-trip'),
       backgroundColor: AppTheme.lightTheme.colorScheme.secondary,
       foregroundColor: Colors.white,
       icon: CustomIconWidget(

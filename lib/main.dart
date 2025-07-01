@@ -1,32 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:sizer/sizer.dart';
+import 'package:dio/dio.dart';
 import 'package:travelmate/config_loader.dart';
+import 'package:travelmate/firebase_msg.dart';
+import 'package:travelmate/firebase_options.dart';
+import 'package:travelmate/services/supabase_service.dart'; // ✅ Supabase service import
 
-import '../widgets/custom_error_widget.dart';
 import 'core/app_export.dart';
+import '../widgets/custom_error_widget.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-await Config.load();
-  // Initialize Supabase
+
+  // ✅ Firebase initialize
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // ✅ FCM init — ЭНЭ ХЭСГИЙГ НЭМЭХ ХЭРЭГТЭЙ
+  await FirebaseMessagingService.instance.initFCM();
+
+  // ✅ Config load
+  await Config.load();
+
+  // ✅ Supabase client init
   try {
-    SupabaseService();
+    await SupabaseService().client;
   } catch (e) {
-    debugPrint('Failed to initialize Supabase: $e');
+    debugPrint('❌ Supabase initialization error: $e');
   }
 
+  // ✅ Error UI override
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    return CustomErrorWidget(
-      errorDetails: details,
-    );
+    return CustomErrorWidget(errorDetails: details);
   };
-  Future.wait([
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
-  ]).then((value) {
-    runApp(MyApp());
-  });
+
+  // ✅ Portrait lock
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+
+  runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -39,6 +57,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
+        debugShowCheckedModeBanner: false,
         builder: (context, child) {
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(
@@ -47,7 +66,6 @@ class MyApp extends StatelessWidget {
             child: child!,
           );
         },
-        debugShowCheckedModeBanner: false,
         routes: AppRoutes.routes,
         initialRoute: AppRoutes.initial,
       );
