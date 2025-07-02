@@ -367,28 +367,28 @@ For complete terms, visit our website or contact support.''',
               padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: EdgeInsets.all(2.w),
-                      decoration: BoxDecoration(
-                        color: AppTheme.lightTheme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.lightTheme.shadowColor,
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: CustomIconWidget(
-                        iconName: 'arrow_back',
-                        color: AppTheme.lightTheme.colorScheme.onSurface,
-                        size: 24,
-                      ),
-                    ),
-                  ),
+                  // GestureDetector(
+                  //   onTap: () => Navigator.pop(context),
+                  //   child: Container(
+                  //     padding: EdgeInsets.all(2.w),
+                  //     decoration: BoxDecoration(
+                  //       color: AppTheme.lightTheme.colorScheme.surface,
+                  //       borderRadius: BorderRadius.circular(12),
+                  //       boxShadow: [
+                  //         BoxShadow(
+                  //           color: AppTheme.lightTheme.shadowColor,
+                  //           blurRadius: 8,
+                  //           offset: const Offset(0, 2),
+                  //         ),
+                  //       ],
+                  //     ),
+                  //     // child: CustomIconWidget(
+                  //     //   iconName: 'arrow_back',
+                  //     //   color: AppTheme.lightTheme.colorScheme.onSurface,
+                  //     //   size: 24,
+                  //     // ),
+                  //   ),
+                  // ),
                   Expanded(
                     child: Center(
                       child: Row(

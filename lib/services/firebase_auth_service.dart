@@ -16,39 +16,41 @@ class FirebaseAuthService {
   bool get isSignedIn => currentUser != null;
 
   Future<UserCredential> signUp({
-  required String email,
-  required String password,
-  required String fullName,
-  String? phone,
-  Map<String, dynamic>? additionalData,
-}) async {
-  try {
-    final credential = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    required String email,
+    required String password,
+    required String fullName,
+    String? phone,
+    Map<String, dynamic>? additionalData,
+  }) async {
+    try {
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    // ✅ Имэйл баталгаажуулах имэйл илгээх
-    await credential.user?.sendEmailVerification();
+      // ✅ Имэйл баталгаажуулах имэйл илгээх
+      await credential.user?.sendEmailVerification();
 
-    // ✅ Firestore дээр хэрэглэгчийн профайл хадгалах
-    await _firestore.collection('user_profiles').doc(credential.user!.uid).set({
-      'email': email,
-      'full_name': fullName,
-      'phone': phone,
-      'role': 'traveler',
-      'is_profile_complete': false,
-      'created_at': FieldValue.serverTimestamp(),
-      ...?additionalData,
-    });
+      // ✅ Firestore дээр хэрэглэгчийн профайл хадгалах
+      await _firestore
+          .collection('user_profiles')
+          .doc(credential.user!.uid)
+          .set({
+        'email': email,
+        'full_name': fullName,
+        'phone': phone,
+        'role': 'traveler',
+        'is_profile_complete': false,
+        'created_at': FieldValue.serverTimestamp(),
+        ...?additionalData,
+      });
 
-    return credential;
-  } catch (e) {
-    debugPrint('Sign up error: $e');
-    rethrow;
+      return credential;
+    } catch (e) {
+      debugPrint('Sign up error: $e');
+      rethrow;
+    }
   }
-}
-
 
   // Sign in
   Future<UserCredential> signIn({
@@ -90,7 +92,10 @@ class FirebaseAuthService {
   // Get user profile from Firestore
   Future<Map<String, dynamic>?> getUserProfile() async {
     if (currentUser == null) return null;
-    final doc = await _firestore.collection('user_profiles').doc(currentUser!.uid).get();
+    final doc = await _firestore
+        .collection('user_profiles')
+        .doc(currentUser!.uid)
+        .get();
     return doc.exists ? doc.data() : null;
   }
 
@@ -111,7 +116,8 @@ class FirebaseAuthService {
     if (bio != null) updateData['bio'] = bio;
     if (location != null) updateData['location'] = location;
     if (phone != null) updateData['phone'] = phone;
-    if (dateOfBirth != null) updateData['date_of_birth'] = dateOfBirth.toIso8601String();
+    if (dateOfBirth != null)
+      updateData['date_of_birth'] = dateOfBirth.toIso8601String();
     if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
     if (notificationPreferences != null) {
       updateData['notification_preferences'] = notificationPreferences;

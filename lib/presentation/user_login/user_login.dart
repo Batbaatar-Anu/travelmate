@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sizer/sizer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:travelmate/services/firebase_auth_service.dart';
@@ -43,14 +44,17 @@ class _UserLoginState extends State<UserLogin> with TickerProviderStateMixin {
     try {
       await Firebase.initializeApp();
 
-      // final session = Supabase.instance.client.auth.currentSession;
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('saved_email') ?? '';
+      final rememberMe = prefs.getBool('remember_me') ?? false;
 
-// Redirect to home only if session exists and email is confirmed
-// if (session != null && session.user?.emailConfirmedAt != null) {
-//   WidgetsBinding.instance.addPostFrameCallback((_) {
-//     Navigator.pushReplacementNamed(context, '/home-dashboard');
-//   });
-// }
+      setState(() {
+        _rememberMe = rememberMe;
+        if (rememberMe) {
+          _emailController.text = savedEmail;
+        }
+      });
+
       final user = _authService.currentUser;
       if (user != null && user.emailVerified) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -58,7 +62,7 @@ class _UserLoginState extends State<UserLogin> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      debugPrint('Auth initialization error: $e');
+      debugPrint('Auth init error: $e');
     }
   }
 
@@ -134,17 +138,28 @@ class _UserLoginState extends State<UserLogin> with TickerProviderStateMixin {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
 
+      // Sign in with FirebaseAuthService
       final response = await _authService.signIn(
         email: email,
         password: password,
       );
-      // supabase session
-      // if (response.user != null && response.session != null)
+
+      // If sign in successful and email is verified
       if (response.user != null && response.user!.emailVerified) {
-        // Success - provide haptic feedback
+        // ✅ Save rememberMe and email to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setBool('remember_me', true);
+          await prefs.setString('saved_email', email);
+        } else {
+          await prefs.setBool('remember_me', false);
+          await prefs.remove('saved_email');
+        }
+
+        // ✅ Haptic feedback
         HapticFeedback.lightImpact();
 
-        // Show success message
+        // ✅ Success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Welcome back, traveler! 🌍'),
@@ -153,8 +168,17 @@ class _UserLoginState extends State<UserLogin> with TickerProviderStateMixin {
           ),
         );
 
-        // Navigate to home dashboard
+        // ✅ Navigate to dashboard
         Navigator.pushReplacementNamed(context, '/home-dashboard');
+      } else {
+        // If email is not verified
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please verify your email before signing in.'),
+            backgroundColor: AppTheme.lightTheme.colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } on AuthException catch (e) {
       final errorMessage = _authService.getErrorMessage(e);
@@ -166,7 +190,6 @@ class _UserLoginState extends State<UserLogin> with TickerProviderStateMixin {
         ),
       );
     } catch (e) {
-      // Handle network or other errors
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

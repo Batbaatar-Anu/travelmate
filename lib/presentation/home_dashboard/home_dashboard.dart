@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,6 +26,8 @@ class _HomeDashboardState extends State<HomeDashboard>
   bool _isRefreshing = false;
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
+  User? _currentUser;
+  Map<String, dynamic>? _currentUserProfile;
 
   // Mock data for travel dashboard
   final List<Map<String, dynamic>> recentTrips = [
@@ -164,6 +168,14 @@ class _HomeDashboardState extends State<HomeDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _getUserProfile();
+    // Firebase-аас нэвтэрсэн хэрэглэгчийн мэдээлэл авах
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _currentUser = user;
+      });
+    }
   }
 
   @override
@@ -201,6 +213,21 @@ class _HomeDashboardState extends State<HomeDashboard>
       case 2:
         Navigator.pushNamed(context, '/push-notification-settings');
         break;
+    }
+  }
+
+  Future<void> _getUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (doc.exists) {
+        setState(() {
+          _currentUserProfile = doc.data();
+        });
+      }
     }
   }
 
@@ -251,15 +278,15 @@ class _HomeDashboardState extends State<HomeDashboard>
             ListTile(
               leading:
                   Icon(Icons.person, color: AppTheme.lightTheme.primaryColor),
-              title: Text("Alex Johnson"),
-              subtitle: Text("alex@example.com"),
+              title: Text(_currentUser?.displayName ?? "Guest User"),
+              subtitle: Text(_currentUser?.email ?? "No email"),
             ),
             Divider(),
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text("Settings"),
-              onTap: () => Navigator.pushNamed(context, '/settings'),
-            ),
+            // ListTile(
+            //   leading: Icon(Icons.settings),
+            //   title: Text("Settings"),
+            //   onTap: () => Navigator.pushNamed(context, '/settings'),
+            // ),
             ListTile(
               leading: Icon(Icons.logout, color: Colors.red),
               title: Text("Log Out", style: TextStyle(color: Colors.red)),
@@ -322,7 +349,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Good morning, Alex!",
+                          "Good morning",
                           style: AppTheme.lightTheme.textTheme.headlineSmall
                               ?.copyWith(
                             fontWeight: FontWeight.w600,
@@ -331,7 +358,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                         ),
                         SizedBox(height: 0.5.h),
                         Text(
-                          "Ready for your next adventure?",
+                          "Дараагийн адал явдалдаа бэлэн үү?",
                           style: AppTheme.lightTheme.textTheme.bodyMedium
                               ?.copyWith(
                             color: AppTheme
