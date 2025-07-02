@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:travelmate/services/firebase_auth_service.dart';
 import '../../core/app_export.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserRegistration extends StatefulWidget {
   const UserRegistration({super.key});
@@ -17,7 +19,8 @@ class _UserRegistrationState extends State<UserRegistration> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
+  // final _authService = AuthService();
+  final _authService = FirebaseAuthService();
 
   final _fullNameFocusNode = FocusNode();
   final _emailFocusNode = FocusNode();
@@ -44,7 +47,11 @@ class _UserRegistrationState extends State<UserRegistration> {
 
   void _initializeAuth() async {
     try {
-      await _authService.initialize();
+      // Remove this line:
+      // final _authService = FirebaseAuthService();
+
+      // If you had an initialize method (optional), you'd call it here.
+      // await _authService.initialize(); ← Only if such method exists
     } catch (e) {
       debugPrint('Auth initialization error: $e');
     }
@@ -152,7 +159,7 @@ class _UserRegistrationState extends State<UserRegistration> {
           _showSuccessDialog();
         }
       }
-    } on AuthException catch (e) {
+    } on FirebaseAuthException catch (e) {
       if (mounted) {
         final errorMessage = _authService.getErrorMessage(e);
         _showErrorSnackBar(errorMessage);
@@ -218,35 +225,41 @@ class _UserRegistrationState extends State<UserRegistration> {
     );
   }
 
-  Future<void> _handleSocialRegistration(OAuthProvider provider) async {
-    setState(() {
-      _isLoading = true;
-    });
+//   Future<void> _handleSocialRegistrationWithGoogle() async {
+//   setState(() {
+//     _isLoading = true;
+//   });
 
-    try {
-      final success = await _authService.signInWithOAuth(provider);
+//   try {
+//     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+//     if (googleUser == null) {
+//       _showErrorSnackBar('Google login cancelled');
+//       return;
+//     }
 
-      if (success) {
-        // Listen for auth state changes to detect completion
-        _authService.authStateChanges.listen((data) {
-          if (data.event == AuthChangeEvent.signedIn && mounted) {
-            _showSuccessDialog();
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        final errorMessage = _authService.getErrorMessage(e);
-        _showErrorSnackBar(errorMessage);
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
+//     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+//     final credential = GoogleAuthProvider.credential(
+//       accessToken: googleAuth.accessToken,
+//       idToken: googleAuth.idToken,
+//     );
+
+//     final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+//     if (userCredential.user != null && mounted) {
+//       _showSuccessDialog();
+//     }
+//   } catch (e) {
+//     if (mounted) {
+//       _showErrorSnackBar('Social login failed: ${e.toString()}');
+//     }
+//   } finally {
+//     if (mounted) {
+//       setState(() {
+//         _isLoading = false;
+//       });
+//     }
+//   }
+// }
 
   void _openTermsAndPrivacy() {
     showModalBottomSheet(
@@ -745,59 +758,52 @@ For complete terms, visit our website or contact support.''',
                       SizedBox(height: 3.h),
 
                       // Social Registration Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : () => _handleSocialRegistration(
-                                      OAuthProvider.google),
-                              style: OutlinedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 2.h),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CustomIconWidget(
-                                    iconName: 'g_translate',
-                                    color:
-                                        AppTheme.lightTheme.colorScheme.primary,
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 2.w),
-                                  Text('Google'),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 4.w),
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : () => _handleSocialRegistration(
-                                      OAuthProvider.apple),
-                              style: OutlinedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 2.h),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CustomIconWidget(
-                                    iconName: 'apple',
-                                    color:
-                                        AppTheme.lightTheme.colorScheme.primary,
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 2.w),
-                                  Text('Apple'),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+//                       Row(
+// //   children: [
+// //     Expanded(
+// //       child: OutlinedButton(
+// //         onPressed: _isLoading ? null : _handleGoogleSignIn,
+// //         style: OutlinedButton.styleFrom(
+// //           padding: EdgeInsets.symmetric(vertical: 2.h),
+// //         ),
+// //         child: Row(
+// //           mainAxisAlignment: MainAxisAlignment.center,
+// //           children: [
+// //             CustomIconWidget(
+// //               iconName: 'g_translate',
+// //               color: AppTheme.lightTheme.colorScheme.primary,
+// //               size: 20,
+// //             ),
+// //             SizedBox(width: 2.w),
+// //             Text('Google'),
+// //           ],
+// //         ),
+// //       ),
+// //     ),
+// //     SizedBox(width: 4.w),
+// //     Expanded(
+// //       child: OutlinedButton(
+// //         onPressed: _isLoading ? null : _handleAppleSignIn,
+// //         style: OutlinedButton.styleFrom(
+// //           padding: EdgeInsets.symmetric(vertical: 2.h),
+// //         ),
+// //         child: Row(
+// //           mainAxisAlignment: MainAxisAlignment.center,
+// //           children: [
+// //             CustomIconWidget(
+// //               iconName: 'apple',
+// //               color: AppTheme.lightTheme.colorScheme.primary,
+// //               size: 20,
+// //             ),
+// //             SizedBox(width: 2.w),
+// //             Text('Apple'),
+// //           ],
+// //         ),
+// //       ),
+// //     ),
+// //   ],
+// // ),
+
                       SizedBox(height: 4.h),
 
                       // Sign In Link

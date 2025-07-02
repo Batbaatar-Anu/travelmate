@@ -1,8 +1,11 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:travelmate/services/firebase_auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/app_export.dart';
 
 class UserLogin extends StatefulWidget {
@@ -16,7 +19,8 @@ class _UserLoginState extends State<UserLogin> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  // final _authService = AuthService();
+  final _authService = FirebaseAuthService();
 
   bool _isPasswordVisible = false;
   bool _isLoading = false;
@@ -36,22 +40,27 @@ class _UserLoginState extends State<UserLogin> with TickerProviderStateMixin {
   }
 
   void _initializeAuth() async {
-  try {
-    await _authService.initialize();
+    try {
+      await Firebase.initializeApp();
 
-    final session = Supabase.instance.client.auth.currentSession;
+      // final session = Supabase.instance.client.auth.currentSession;
 
 // Redirect to home only if session exists and email is confirmed
-if (session != null && session.user?.emailConfirmedAt != null) {
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    Navigator.pushReplacementNamed(context, '/home-dashboard');
-  });
-}
-  } catch (e) {
-    debugPrint('Auth initialization error: $e');
+// if (session != null && session.user?.emailConfirmedAt != null) {
+//   WidgetsBinding.instance.addPostFrameCallback((_) {
+//     Navigator.pushReplacementNamed(context, '/home-dashboard');
+//   });
+// }
+      final user = _authService.currentUser;
+      if (user != null && user.emailVerified) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, '/home-dashboard');
+        });
+      }
+    } catch (e) {
+      debugPrint('Auth initialization error: $e');
+    }
   }
-}
-
 
   void _setupAnimations() {
     _animationController = AnimationController(
@@ -129,8 +138,9 @@ if (session != null && session.user?.emailConfirmedAt != null) {
         email: email,
         password: password,
       );
-
-      if (response.user != null && response.session != null) {
+      // supabase session
+      // if (response.user != null && response.session != null)
+      if (response.user != null && response.user!.emailVerified) {
         // Success - provide haptic feedback
         HapticFeedback.lightImpact();
 
@@ -209,39 +219,89 @@ if (session != null && session.user?.emailConfirmedAt != null) {
     }
   }
 
-  Future<void> _handleSocialLogin(OAuthProvider provider) async {
-    setState(() {
-      _isLoading = true;
-    });
+  // Future<void> _handleSocialLogin(OAuthProvider provider) async {
+  //   setState(() {
+  //     _isLoading = true;
+  //   });
 
-    try {
-      final success = await _authService.signInWithOAuth(provider);
+  //   try {
+  //     final success = await _authService.signInWithOAuth(provider);
 
-      if (success) {
-        // Listen for auth state changes to detect completion
-        _authService.authStateChanges.listen((data) {
-          if (data.event == AuthChangeEvent.signedIn && mounted) {
-            Navigator.pushReplacementNamed(context, '/home-dashboard');
-          }
-        });
-      }
-    } catch (e) {
-      final errorMessage = _authService.getErrorMessage(e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: AppTheme.lightTheme.colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
+  //     if (success) {
+  //       // Listen for auth state changes to detect completion
+  //       _authService.authStateChanges.listen((data) {
+  //         if (data.event == AuthChangeEvent.signedIn && mounted) {
+  //           Navigator.pushReplacementNamed(context, '/home-dashboard');
+  //         }
+  //       });
+  //     }
+  //   } catch (e) {
+  //     final errorMessage = _authService.getErrorMessage(e);
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(errorMessage),
+  //         backgroundColor: AppTheme.lightTheme.colorScheme.error,
+  //         behavior: SnackBarBehavior.floating,
+  //       ),
+  //     );
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() {
+  //         _isLoading = false;
+  //       });
+  //     }
+  //   }
+  // }
+// Future<void> _handleSocialLogin(String provider) async {
+//   setState(() {
+//     _isLoading = true;
+//   });
+
+//   try {
+//     UserCredential userCredential;
+
+//     if (provider == 'google') {
+//       final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
+//       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+//       if (googleUser == null) {
+//         setState(() => _isLoading = false);
+//         return;
+//       }
+
+//       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+//       final AuthCredential credential = GoogleAuthProvider.credential(
+//         accessToken: googleAuth.accessToken,
+//         idToken: googleAuth.idToken,
+//       );
+
+//       userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+//     }
+//     // TODO: Implement Apple Sign-In if needed
+//     // else if (provider == 'apple') {
+//     //   // Apple sign-in logic here (using `sign_in_with_apple` package)
+//     // }
+
+//     if (userCredential.user != null && mounted) {
+//       Navigator.pushReplacementNamed(context, '/home-dashboard');
+//     }
+//   } catch (e) {
+//     final errorMessage = _authService.getErrorMessage(e);
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       SnackBar(
+//         content: Text(errorMessage),
+//         backgroundColor: AppTheme.lightTheme.colorScheme.error,
+//         behavior: SnackBarBehavior.floating,
+//       ),
+//     );
+//   } finally {
+//     if (mounted) {
+//       setState(() {
+//         _isLoading = false;
+//       });
+//     }
+//   }
+// }
 
   @override
   Widget build(BuildContext context) {
@@ -525,25 +585,25 @@ if (session != null && session.user?.emailConfirmedAt != null) {
           ],
         ),
         SizedBox(height: 3.h),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSocialButton(
-                'Google',
-                'g_translate',
-                () => _handleSocialLogin(OAuthProvider.google),
-              ),
-            ),
-            SizedBox(width: 4.w),
-            Expanded(
-              child: _buildSocialButton(
-                'Apple',
-                'apple',
-                () => _handleSocialLogin(OAuthProvider.apple),
-              ),
-            ),
-          ],
-        ),
+        // Row(
+        //   children: [
+        //     Expanded(
+        //       child: _buildSocialButton(
+        //         'Google',
+        //         'g_translate',
+        //         () => _handleSocialLogin('google'), // ✅ Supabase биш Firebase string
+        //       ),
+        //     ),
+        //     SizedBox(width: 4.w),
+        //     Expanded(
+        //       child: _buildSocialButton(
+        //         'Apple',
+        //         'apple',
+        //         () => _handleSocialLogin('apple'), // ✅ Firebase-д зориулсан string
+        //       ),
+        //     ),
+        //   ],
+        // ),
       ],
     );
   }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:travelmate/presentation/home_dashboard/profile_tab_widget.dart';
-
+import 'package:travelmate/services/firebase_auth_service.dart';
 import '../../core/app_export.dart';
 import './widgets/recent_trip_card_widget.dart';
 import './widgets/recommended_destination_widget.dart';
@@ -261,36 +261,39 @@ class _HomeDashboardState extends State<HomeDashboard>
               onTap: () => Navigator.pushNamed(context, '/settings'),
             ),
             ListTile(
-  leading: Icon(Icons.logout, color: Colors.red),
-  title: Text("Log Out", style: TextStyle(color: Colors.red)),
-  onTap: () async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Log Out"),
-        content: Text("Are you sure you want to log out?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel")),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: Text("Log Out")),
-        ],
-      ),
-    );
+              leading: Icon(Icons.logout, color: Colors.red),
+              title: Text("Log Out", style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text("Log Out"),
+                    content: Text("Are you sure you want to log out?"),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text("Cancel")),
+                      ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: Text("Log Out")),
+                    ],
+                  ),
+                );
 
-    if (confirm == true) {
-      final auth = AuthService();
-      await auth.signOut();
+                if (confirm == true) {
+                  final auth = FirebaseAuthService();
+                  await auth.signOut();
 
-      if (context.mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/user-login',
-          (route) => false,
-        );
-      }
-    }
-  },
-),
-
+                  if (context.mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/user-login',
+                      (route) => false,
+                    );
+                  }
+                }
+              },
+            ),
           ],
         ),
       ),

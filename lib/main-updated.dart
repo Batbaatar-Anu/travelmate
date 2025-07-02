@@ -1,5 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:travelmate/firebase_options.dart';
 import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 import 'dart:async';
@@ -15,31 +17,60 @@ import 'core/app_export.dart';
 
 var backendURL = "https://travelmate5803back.builtwithrocket.new/log-error";
 
+// void main() async {
+//   FlutterError.onError = (details) {
+//     _sendOverflowError(details);
+//   };
+//   WidgetsFlutterBinding.ensureInitialized();
+
+//   // Initialize Supabase
+//   try {
+//     SupabaseService();
+//   } catch (e) {
+//     debugPrint('Failed to initialize Supabase: $e');
+//   }
+
+//   ErrorWidget.builder = (FlutterErrorDetails details) {
+//     return CustomErrorWidget(
+//       errorDetails: details,
+//     );
+//   };
+//   Future.wait([
+//     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+//   ]).then((value) {
+//     runApp(MyApp());
+//   });
+// }
+
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase-г инициализлэнэ
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase init failed: $e');
+  }
+
+  // Runtime алдааг илгээх
   FlutterError.onError = (details) {
     _sendOverflowError(details);
   };
-  WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase
-  try {
-    SupabaseService();
-  } catch (e) {
-    debugPrint('Failed to initialize Supabase: $e');
-  }
-
+  // UI-д алдаа гарвал custom widget ашиглана
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return CustomErrorWidget(
       errorDetails: details,
     );
   };
-  Future.wait([
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
-  ]).then((value) {
-    runApp(MyApp());
-  });
-}
 
+  // Portrait mode-оор түгжинэ
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  runApp(MyApp());
+}
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
