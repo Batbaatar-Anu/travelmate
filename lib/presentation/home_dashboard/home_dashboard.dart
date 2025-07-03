@@ -213,13 +213,50 @@ class _HomeDashboardState extends State<HomeDashboard>
   //     });
   //   }
   // }
-  Future<void> _fetchPostedTrips() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  Future<void> _fetchUserOwnTrips() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
 
+  try {
     final snapshot = await FirebaseFirestore.instance
         .collection('trips')
         .where('user_id', isEqualTo: user.uid)
+        .orderBy('created_at', descending: true)
+        .get();
+
+    setState(() {
+      postedTrips = snapshot.docs.map((doc) {
+        final data = doc.data();
+        final Timestamp createdAt = data['created_at'] ?? Timestamp.now();
+        final createdDate = createdAt.toDate();
+
+        final formattedDate =
+            "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}";
+
+        return {
+          'id': doc.id,
+          'title': data['title'] ?? 'Untitled',
+          'destination': data['destination'] ?? '',
+          'image': (data['media_url'] ?? '').toString().isNotEmpty
+              ? data['media_url']
+              : 'https://via.placeholder.com/300',
+          'date': formattedDate,
+          'status': 'Upcoming',
+          'rating': data['rating'] ?? 0.0,
+          'highlights': List<String>.from(data['highlights'] ?? []),
+        };
+      }).toList();
+    });
+  } catch (e) {
+    debugPrint('Error fetching user trips: $e');
+  }
+}
+
+  Future<void> _fetchPostedTrips() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('trips')
+        .orderBy('created_at', descending: true)
+        .limit(10) // Хамгийн сүүлийн 10 аялал
         .get();
 
     setState(() {
@@ -355,12 +392,12 @@ class _HomeDashboardState extends State<HomeDashboard>
               title: Text(_currentUser?.displayName ?? 'Guest User'),
               subtitle: Text(_currentUser?.email ?? "No email"),
             ),
-            Divider(),
-            // ListTile(
-            //   leading: Icon(Icons.settings),
-            //   title: Text("Settings"),
-            //   onTap: () => Navigator.pushNamed(context, '/settings'),
-            // ),
+            // Divider(),
+            // // ListTile(
+            // //   leading: Icon(Icons.settings),
+            // //   title: Text("Settings"),
+            // //   onTap: () => Navigator.pushNamed(context, '/settings'),
+            // // ),
             ListTile(
               leading: Icon(Icons.logout, color: Colors.red),
               title: Text("Log Out", style: TextStyle(color: Colors.red)),
@@ -402,6 +439,9 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
   Widget _buildStickyHeader() {
+    final currentUser = FirebaseAuthService().currentUser;
+    final displayName = currentUser?.displayName ?? 'Traveler';
+
     return SliverAppBar(
       floating: true,
       pinned: true,
@@ -423,7 +463,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Good morning",
+                          "Hello ${displayName} ",
                           style: AppTheme.lightTheme.textTheme.headlineSmall
                               ?.copyWith(
                             fontWeight: FontWeight.w600,
@@ -535,7 +575,7 @@ class _HomeDashboardState extends State<HomeDashboard>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            padding: EdgeInsets.symmetric(horizontal: 6.w),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -555,10 +595,11 @@ class _HomeDashboardState extends State<HomeDashboard>
           SizedBox(height: 1.h),
           SizedBox(
             height: 25.h,
-            child: ListView.builder(
+            child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 4.w),
               itemCount: postedTrips.length,
+              separatorBuilder: (_, __) => SizedBox(width: 3.w),
               itemBuilder: (context, index) {
                 final trip = postedTrips[index];
                 return RecentTripCardWidget(
@@ -814,51 +855,51 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-  void _showShareDialog(String destination) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Share Trip"),
-          content:
-              Text("Share your amazing trip to $destination with friends!"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text("Share"),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void _showShareDialog(String destination) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: Text("Share Trip"),
+  //         content:
+  //             Text("Share your amazing trip to $destination with friends!"),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.of(context).pop(),
+  //             child: Text("Cancel"),
+  //           ),
+  //           ElevatedButton(
+  //             onPressed: () => Navigator.of(context).pop(),
+  //             child: Text("Share"),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
-  void _showEditDialog(String destination) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Edit Trip"),
-          content: Text("Edit your trip details for $destination."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pushNamed(context, '/home-detail');
-              },
-              child: Text("Edit"),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void _showEditDialog(String destination) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: Text("Edit Trip"),
+  //         content: Text("Edit your trip details for $destination."),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.of(context).pop(),
+  //             child: Text("Cancel"),
+  //           ),
+  //           ElevatedButton(
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //               Navigator.pushNamed(context, '/home-detail');
+  //             },
+  //             child: Text("Edit"),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 }
