@@ -22,7 +22,7 @@ class AppRoutes {
     initial: (context) => const OnboardingFlow(),
     onboardingFlow: (context) => const OnboardingFlow(),
     userLogin: (context) => const UserLogin(),
-    pushNotificationSettings: (context) => const PushNotificationSettings(),
+    pushNotificationSettings: (context) => const NotificationScreen(),
     userRegistration: (context) => const UserRegistration(),
     homeDashboard: (context) => const HomeDashboard(),
     homeDetail: (context) => const HomeDetail(),

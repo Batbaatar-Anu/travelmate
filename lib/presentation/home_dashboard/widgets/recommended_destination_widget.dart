@@ -52,7 +52,7 @@ class RecommendedDestinationWidget extends StatelessWidget {
 
   Widget _buildImageSection() {
     return SizedBox(
-      height: 20.h,
+      height: 10.h,
       width: double.infinity,
       child: Stack(
         children: [
@@ -64,7 +64,7 @@ class RecommendedDestinationWidget extends StatelessWidget {
             child: CustomImageWidget(
               imageUrl: imageUrl,
               width: double.infinity,
-              height: 20.h,
+              height: 10.h,
               fit: BoxFit.cover,
             ),
           ),
@@ -107,75 +107,76 @@ class RecommendedDestinationWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildContentSection() {
-    return Expanded(
-      child: Padding(
-        padding: EdgeInsets.all(3.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              name,
-              style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+Widget _buildContentSection() {
+  return Padding(
+    padding: EdgeInsets.all(3.w),
+    child: SizedBox(
+      height: 10.h, // 👈 Өндөрийг тогтоож өгнө
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            name,
+            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          Row(
+            children: [
+              CustomIconWidget(
+                iconName: 'star',
+                color: Colors.amber,
+                size: 16,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 0.5.h),
-            Row(
-              children: [
-                CustomIconWidget(
-                  iconName: 'star',
-                  color: Colors.amber,
-                  size: 16,
+              SizedBox(width: 1.w),
+              Text(
+                rating.toString(),
+                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
                 ),
-                SizedBox(width: 1.w),
-                Text(
-                  rating.toString(),
-                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
+              ),
+              SizedBox(width: 2.w),
+              Text(
+                "• $duration",
+                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                price,
+                style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                  color: AppTheme.lightTheme.colorScheme.secondary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+                decoration: BoxDecoration(
+                  color: AppTheme.lightTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  "Book Now",
+                  style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(width: 2.w),
-                Text(
-                  "• $duration",
-                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  price,
-                  style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                    color: AppTheme.lightTheme.colorScheme.secondary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-                  decoration: BoxDecoration(
-                    color: AppTheme.lightTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    "Book Now",
-                    style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

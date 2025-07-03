@@ -214,43 +214,43 @@ class _HomeDashboardState extends State<HomeDashboard>
   //   }
   // }
   Future<void> _fetchUserOwnTrips() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('trips')
-        .where('user_id', isEqualTo: user.uid)
-        .orderBy('created_at', descending: true)
-        .get();
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('trips')
+          .where('user_id', isEqualTo: user.uid)
+          .orderBy('created_at', descending: true)
+          .get();
 
-    setState(() {
-      postedTrips = snapshot.docs.map((doc) {
-        final data = doc.data();
-        final Timestamp createdAt = data['created_at'] ?? Timestamp.now();
-        final createdDate = createdAt.toDate();
+      setState(() {
+        postedTrips = snapshot.docs.map((doc) {
+          final data = doc.data();
+          final Timestamp createdAt = data['created_at'] ?? Timestamp.now();
+          final createdDate = createdAt.toDate();
 
-        final formattedDate =
-            "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}";
+          final formattedDate =
+              "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}";
 
-        return {
-          'id': doc.id,
-          'title': data['title'] ?? 'Untitled',
-          'destination': data['destination'] ?? '',
-          'image': (data['media_url'] ?? '').toString().isNotEmpty
-              ? data['media_url']
-              : 'https://via.placeholder.com/300',
-          'date': formattedDate,
-          'status': 'Upcoming',
-          'rating': data['rating'] ?? 0.0,
-          'highlights': List<String>.from(data['highlights'] ?? []),
-        };
-      }).toList();
-    });
-  } catch (e) {
-    debugPrint('Error fetching user trips: $e');
+          return {
+            'id': doc.id,
+            'title': data['title'] ?? 'Untitled',
+            'destination': data['destination'] ?? '',
+            'image': (data['media_url'] ?? '').toString().isNotEmpty
+                ? data['media_url']
+                : 'https://via.placeholder.com/300',
+            'date': formattedDate,
+            'status': 'Upcoming',
+            'rating': data['rating'] ?? 0.0,
+            'highlights': List<String>.from(data['highlights'] ?? []),
+          };
+        }).toList();
+      });
+    } catch (e) {
+      debugPrint('Error fetching user trips: $e');
+    }
   }
-}
 
   Future<void> _fetchPostedTrips() async {
     final snapshot = await FirebaseFirestore.instance
@@ -583,11 +583,18 @@ class _HomeDashboardState extends State<HomeDashboard>
                   "Recent Trips",
                   style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
+                    fontSize: 12.sp,
                   ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/home-detail'),
-                  child: Text("View All"),
+                  child: Text(
+                    "View All",
+                    style: TextStyle(
+                      fontSize: 10.sp, // 👈 Жижиг font
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -633,15 +640,26 @@ class _HomeDashboardState extends State<HomeDashboard>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "Recommended Destinations",
-                  style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
+                Flexible(
+                  child: Text(
+                    "Recommended Destinations",
+                    style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/home-detail'),
-                  child: Text("View All"),
+                  child: Text(
+                    "View All",
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ],
             ),

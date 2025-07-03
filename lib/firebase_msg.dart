@@ -1,9 +1,10 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/material.dart';
+import 'package:travelmate/presentation/push_notification_settings/notificationStorage.dart';
 
 class FirebaseMessagingService {
-  // Singleton
   static final FirebaseMessagingService instance = FirebaseMessagingService._internal();
   factory FirebaseMessagingService() => instance;
   FirebaseMessagingService._internal();
@@ -11,25 +12,45 @@ class FirebaseMessagingService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
-  /// Init FCM service
-Future<void> initFCM() async {
-  await _requestPermission();
-  await _initializeLocalNotifications();
+  // Callback function for received notification
+  Function(String title, String body)? onNotificationReceived;
 
-  // final token = await _messaging.getToken();
-  // debugPrint("🔐 FCM Token: $token");
+  // Initialize Firebase messaging service
+  Future<void> initFCM() async {
+    await _requestPermission();
+    await _initializeLocalNotifications();
 
-  // ✅ Бүх хэрэглэгчийг 'all' topic-д бүртгүүлнэ
-  await _messaging.subscribeToTopic('all');
-  debugPrint("✅ Subscribed to topic: all");
+    // Subscribe to a topic (all users in this case)
+    await _messaging.subscribeToTopic('all');
 
-  // ✅ Foreground болон notification click listener
-  FirebaseMessaging.onMessage.listen(_handleForegroundNotification);
-  FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationClick);
-}
+    // Handle message when the app is in the foreground
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      final notification = message.notification;
+      if (notification != null) {
+        _showLocalNotification(notification);
+        // Store the notification data
+        NotificationStorage.save(
+          notification.title ?? 'No title', 
+          notification.body ?? 'No message',
+        );
+        // Call the onNotificationReceived callback
+        if (onNotificationReceived != null) {
+          onNotificationReceived!(notification.title ?? 'No title', notification.body ?? 'No message');
+        }
+      }
+    });
 
+    // Handle notification click
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint("📬 Notification clicked: ${message.data}");
+      // Perform any action when the user clicks the notification, like navigation
+    });
 
-  /// Request permissions for iOS
+    // Background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
+  }
+
+  // Request permission for notifications on iOS
   Future<void> _requestPermission() async {
     await _messaging.requestPermission(
       alert: true,
@@ -38,53 +59,40 @@ Future<void> initFCM() async {
     );
   }
 
-  /// Initialize local notification plugin (foreground display)
+  // Initialize local notifications plugin
   Future<void> _initializeLocalNotifications() async {
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
-
     const InitializationSettings settings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(),
     );
-
     await _localNotifications.initialize(settings);
   }
 
-  /// Show local notification when app is in foreground
-  Future<void> _handleForegroundNotification(RemoteMessage message) async {
-    RemoteNotification? notification = message.notification;
-    AndroidNotification? android = message.notification?.android;
-
-    if (notification != null && android != null) {
-      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+  // Show local notification when a message is received
+  Future<void> _showLocalNotification(RemoteNotification notification) async {
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
         'default_channel',
         'Default',
-        channelDescription: 'Default channel',
         importance: Importance.max,
         priority: Priority.high,
-      );
-
-      const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-
-      await _localNotifications.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        platformDetails,
-      );
-    }
+      ),
+    );
+    await _localNotifications.show(
+      notification.hashCode,
+      notification.title,
+      notification.body,
+      details,
+    );
   }
 
-  /// Handle when user taps notification
-  void _handleNotificationClick(RemoteMessage message) {
-    debugPrint("📬 Notification clicked: ${message.data}");
-    // TODO: navigate or handle click
-  }
-
-  /// Static method to handle background messages
-  static Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
-    debugPrint("📩 Background message: ${message.notification?.title}");
-    // You can show a local notification here too (if needed)
+  // Firebase background message handler to store the notifications
+  static Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
+    await Firebase.initializeApp();
+    // Store the notification in the local storage
+    NotificationStorage.save(
+      message.notification?.title ?? 'No Title', 
+      message.notification?.body ?? 'No Body',
+    );
   }
 }
