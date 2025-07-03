@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sizer/sizer.dart';
@@ -15,8 +18,10 @@ class _NewTripScreenState extends State<NewTripScreen> {
   final _tripNameController = TextEditingController();
   final _destinationController = TextEditingController();
   final _descriptionController = TextEditingController();
-  DateTime? _startDate;
-  DateTime? _endDate;
+  final _highlightsController = TextEditingController();
+  final _latitudeController = TextEditingController();
+  final _longitudeController = TextEditingController();
+
   File? _selectedMedia;
 
   Future<void> _pickMedia() async {
@@ -29,43 +34,75 @@ class _NewTripScreenState extends State<NewTripScreen> {
     }
   }
 
-  Future<void> _pickDate({required bool isStart}) async {
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (selected != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = selected;
-        } else {
-          _endDate = selected;
-        }
-      });
-    }
-  }
+  Future<void> _saveTrip() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  void _saveTrip() {
-    if (_formKey.currentState!.validate()) {
-      final trip = {
-        'name': _tripNameController.text,
-        'destination': _destinationController.text,
-        'description': _descriptionController.text,
-        'start_date': _startDate?.toIso8601String(),
-        'end_date': _endDate?.toIso8601String(),
-        'media_path': _selectedMedia?.path,
-      };
-
-      print('Trip posted: $trip');
-
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your trip has been posted!')),
+        const SnackBar(content: Text('Нэвтэрсэн хэрэглэгч олдсонгүй')),
       );
-
-      Navigator.pop(context);
+      return;
     }
+
+    String? imageUrl;
+    if (_selectedMedia != null) {
+      try {
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_${user.uid}.jpg';
+        final ref =
+            FirebaseStorage.instance.ref().child('trip_media/$fileName');
+
+        // ✨ Upload хийж, snapshot авч байна
+        final uploadTaskSnapshot = await ref.putFile(_selectedMedia!);
+
+        // ✨ Upload амжилттай болсон эсэхийг шалгаж байна
+        if (uploadTaskSnapshot.state == TaskState.success) {
+          imageUrl = await ref.getDownloadURL();
+          print("✅ Зураг амжилттай хадгалагдлаа. URL: $imageUrl");
+        } else {
+          throw FirebaseException(
+            plugin: 'firebase_storage',
+            message:
+                'Upload task failed with state: ${uploadTaskSnapshot.state}',
+          );
+        }
+      } catch (e) {
+        print("🔥 Firebase upload error: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Зураг оруулахад алдаа гарлаа: $e')),
+        );
+        return;
+      }
+    }
+
+    final tripData = {
+      'user_id': user.uid,
+      'title': _tripNameController.text.trim(),
+      'subtitle': _destinationController.text.trim(),
+      'heroImage': imageUrl,
+      'description': _descriptionController.text.trim(),
+      'rating': 0.0,
+      'reviewCount': 0,
+      'coordinates': {
+        'latitude': double.tryParse(_latitudeController.text.trim()) ?? 0.0,
+        'longitude': double.tryParse(_longitudeController.text.trim()) ?? 0.0,
+      },
+      'highlights': _highlightsController.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      'photos': [imageUrl],
+      'created_at': FieldValue.serverTimestamp(),
+    };
+
+    await FirebaseFirestore.instance.collection('trips').add(tripData);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Аялал амжилттай нийтлэгдлээ!')),
+    );
+    Navigator.pop(context);
   }
 
   @override
@@ -73,20 +110,22 @@ class _NewTripScreenState extends State<NewTripScreen> {
     _tripNameController.dispose();
     _destinationController.dispose();
     _descriptionController.dispose();
+    _highlightsController.dispose();
+    _latitudeController.dispose();
+    _longitudeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Post a New Trip')),
+      appBar: AppBar(title: const Text('Шинэ аялал нийтлэх')),
       body: Padding(
         padding: EdgeInsets.all(4.w),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              // Profile avatar and input
               Row(
                 children: [
                   const CircleAvatar(
@@ -98,29 +137,26 @@ class _NewTripScreenState extends State<NewTripScreen> {
                     child: TextFormField(
                       controller: _tripNameController,
                       decoration: const InputDecoration(
-                        hintText: "What's your trip name?",
+                        hintText: "Аяллын нэр",
                         border: InputBorder.none,
                       ),
-                      validator: (val) =>
-                          val == null || val.isEmpty ? 'Trip name required' : null,
+                      validator: (val) => val == null || val.isEmpty
+                          ? 'Аяллын нэр оруулна уу'
+                          : null,
                     ),
                   ),
                 ],
               ),
               const Divider(),
-
-              // Description field
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 4,
                 decoration: const InputDecoration(
-                  hintText: "Tell something about your trip...",
+                  hintText: "Аяллын талаар дэлгэрэнгүй...",
                   border: OutlineInputBorder(),
                 ),
               ),
               SizedBox(height: 2.h),
-
-              // Media preview
               _selectedMedia != null
                   ? Stack(
                       children: [
@@ -133,7 +169,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
                             child: const CircleAvatar(
                               radius: 14,
                               backgroundColor: Colors.black54,
-                              child: Icon(Icons.close, color: Colors.white, size: 16),
+                              child: Icon(Icons.close,
+                                  color: Colors.white, size: 16),
                             ),
                           ),
                         ),
@@ -142,53 +179,60 @@ class _NewTripScreenState extends State<NewTripScreen> {
                   : ElevatedButton.icon(
                       onPressed: _pickMedia,
                       icon: const Icon(Icons.image),
-                      label: const Text("Add Image/Video"),
+                      label: const Text("Зураг нэмэх"),
                     ),
-
               SizedBox(height: 2.h),
-
-              // Destination
               TextFormField(
                 controller: _destinationController,
                 decoration: const InputDecoration(
-                  labelText: 'Destination',
+                  labelText: 'Очих газар (хот, улс)',
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Destination required' : null,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Очих газрын нэр оруулна уу'
+                    : null,
               ),
               SizedBox(height: 2.h),
-
-              // Dates
+              TextFormField(
+                controller: _highlightsController,
+                decoration: const InputDecoration(
+                  labelText: 'Гол онцлох зүйлс (таслалаар тусгаарлан)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 2.h),
               Row(
                 children: [
                   Expanded(
-                    child: ListTile(
-                      title: Text(_startDate == null
-                          ? 'Start Date'
-                          : 'Start: ${_startDate!.toLocal().toString().split(" ")[0]}'),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: () => _pickDate(isStart: true),
+                    child: TextFormField(
+                      controller: _latitudeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Өргөрөг',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType:
+                          TextInputType.numberWithOptions(decimal: true),
                     ),
                   ),
+                  SizedBox(width: 2.w),
                   Expanded(
-                    child: ListTile(
-                      title: Text(_endDate == null
-                          ? 'End Date'
-                          : 'End: ${_endDate!.toLocal().toString().split(" ")[0]}'),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: () => _pickDate(isStart: false),
+                    child: TextFormField(
+                      controller: _longitudeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Уртраг',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType:
+                          TextInputType.numberWithOptions(decimal: true),
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 4.h),
-
-              // Post button
               ElevatedButton.icon(
                 onPressed: _saveTrip,
                 icon: const Icon(Icons.send),
-                label: const Text('Post Trip'),
+                label: const Text('Нийтлэх'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 1.5.h),
                   shape: RoundedRectangleBorder(

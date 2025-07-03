@@ -4,6 +4,7 @@ import 'package:sizer/sizer.dart';
 import '../../../core/app_export.dart';
 
 class RecentTripCardWidget extends StatelessWidget {
+  final String title; // 🆕
   final String destination;
   final String imageUrl;
   final String date;
@@ -16,6 +17,7 @@ class RecentTripCardWidget extends StatelessWidget {
 
   const RecentTripCardWidget({
     super.key,
+    required this.title, // 🆕
     required this.destination,
     required this.imageUrl,
     required this.date,
@@ -39,7 +41,7 @@ class RecentTripCardWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: Colors.black.withOpacity(0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -106,6 +108,19 @@ class RecentTripCardWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 🆕 Title харагдах хэсэг
+            Text(
+              title,
+              style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.lightTheme.colorScheme.primary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 0.5.h),
+
+            // ✅ Destination
             Text(
               destination,
               style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
@@ -114,13 +129,18 @@ class RecentTripCardWidget extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+
             SizedBox(height: 0.5.h),
+
+            // ✅ Date
             Text(
               date,
               style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                 color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
               ),
             ),
+
+            // ✅ Rating
             if (rating > 0) ...[
               SizedBox(height: 1.h),
               Row(
@@ -140,6 +160,8 @@ class RecentTripCardWidget extends StatelessWidget {
                 ],
               ),
             ],
+
+            // ✅ Highlights
             SizedBox(height: 1.h),
             Expanded(
               child: Text(

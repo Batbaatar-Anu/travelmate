@@ -30,6 +30,7 @@ class _HomeDashboardState extends State<HomeDashboard>
   Map<String, dynamic>? _currentUserProfile;
 
   // Mock data for travel dashboard
+  List<Map<String, dynamic>> postedTrips = [];
   final List<Map<String, dynamic>> recentTrips = [
     {
       "id": 1,
@@ -169,6 +170,7 @@ class _HomeDashboardState extends State<HomeDashboard>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _getUserProfile();
+    _fetchPostedTrips();
     // Firebase-аас нэвтэрсэн хэрэглэгчийн мэдээлэл авах
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -183,6 +185,74 @@ class _HomeDashboardState extends State<HomeDashboard>
     _tabController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // Future<void> _fetchPostedTrips() async {
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user != null) {
+  //     // 🛠️ get() үр дүнгээ хадгалж байна
+  //     final snapshot = await FirebaseFirestore.instance
+  //         .collection('trips')
+  //         .where('user_id', isEqualTo: user.uid)
+  //         .orderBy('created_at', descending: true)
+  //         .get();
+
+  //     setState(() {
+  //       postedTrips = snapshot.docs.map((doc) {
+  //         final data = doc.data();
+  //         return {
+  //           'id': doc.id,
+  //           'destination': data['destination'] ?? '',
+  //           'image': data['media_url'] ?? '',
+  //           'date': _formatDateRange(data['start_date'], data['end_date']),
+  //           'status': 'Upcoming',
+  //           'rating': 0.0,
+  //           'highlights': [],
+  //         };
+  //       }).toList();
+  //     });
+  //   }
+  // }
+  Future<void> _fetchPostedTrips() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('trips')
+        .where('user_id', isEqualTo: user.uid)
+        .get();
+
+    setState(() {
+      postedTrips = snapshot.docs.map((doc) {
+        final data = doc.data();
+        final Timestamp createdAt = data['created_at'] ?? Timestamp.now();
+        final createdDate = createdAt.toDate();
+
+        final formattedDate =
+            "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}";
+
+        return {
+          'id': doc.id,
+          'destination': data['destination'] ?? '',
+          'title': data['title'] ?? 'Untitled Trip',
+          'image': (data['media_url'] != null &&
+                  data['media_url'].toString().isNotEmpty)
+              ? data['media_url']
+              : 'https://via.placeholder.com/300',
+          'date': formattedDate,
+          'status': 'Upcoming',
+          'rating': data['rating'] ?? 0.0,
+          'highlights': List<String>.from(data['highlights'] ?? []),
+        };
+      }).toList();
+    });
+  }
+
+  String _formatDateRange(String? start, String? end) {
+    if (start == null || end == null) return '';
+    final startDate = DateTime.parse(start);
+    final endDate = DateTime.parse(end);
+    return "${startDate.month}/${startDate.day} - ${endDate.month}/${endDate.day}";
   }
 
   Future<void> _handleRefresh() async {
@@ -219,6 +289,10 @@ class _HomeDashboardState extends State<HomeDashboard>
   Future<void> _getUserProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+      setState(() {
+        _currentUser = user; // ✅ Make sure this is always set
+      });
+
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -278,7 +352,7 @@ class _HomeDashboardState extends State<HomeDashboard>
             ListTile(
               leading:
                   Icon(Icons.person, color: AppTheme.lightTheme.primaryColor),
-              title: Text(_currentUser?.displayName ?? "Guest User"),
+              title: Text(_currentUser?.displayName ?? 'Guest User'),
               subtitle: Text(_currentUser?.email ?? "No email"),
             ),
             Divider(),
@@ -484,24 +558,20 @@ class _HomeDashboardState extends State<HomeDashboard>
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 4.w),
-              itemCount: recentTrips.length,
+              itemCount: postedTrips.length,
               itemBuilder: (context, index) {
-                final trip = recentTrips[index];
-                return Container(
-                  margin: EdgeInsets.only(right: 3.w),
-                  child: RecentTripCardWidget(
-                    destination: trip["destination"] as String,
-                    imageUrl: trip["image"] as String,
-                    date: trip["date"] as String,
-                    status: trip["status"] as String,
-                    rating: trip["rating"] as double,
-                    highlights: (trip["highlights"] as List).cast<String>(),
-                    onTap: () => Navigator.pushNamed(context, '/home-detail'),
-                    onShare: () =>
-                        _showShareDialog(trip["destination"] as String),
-                    onEdit: () =>
-                        _showEditDialog(trip["destination"] as String),
-                  ),
+                final trip = postedTrips[index];
+                return RecentTripCardWidget(
+                  title: trip['title'] ?? 'Untitled',
+                  destination: trip['destination'] ?? '',
+                  imageUrl: trip['image'] ?? '',
+                  date: trip['date'] ?? '',
+                  status: trip['status'] ?? 'Upcoming',
+                  rating: trip['rating'] ?? 0.0,
+                  highlights: trip['highlights'] ?? [],
+                  onTap: () {},
+                  onShare: () {},
+                  onEdit: () {},
                 );
               },
             ),

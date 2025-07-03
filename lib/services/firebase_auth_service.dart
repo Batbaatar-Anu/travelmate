@@ -15,42 +15,47 @@ class FirebaseAuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   bool get isSignedIn => currentUser != null;
 
-  Future<UserCredential> signUp({
-    required String email,
-    required String password,
-    required String fullName,
-    String? phone,
-    Map<String, dynamic>? additionalData,
-  }) async {
-    try {
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+ Future<UserCredential> signUp({
+  required String email,
+  required String password,
+  required String fullName,
+  String? phone,
+  Map<String, dynamic>? additionalData,
+}) async {
+  try {
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
 
-      // ✅ Имэйл баталгаажуулах имэйл илгээх
-      await credential.user?.sendEmailVerification();
+    // ✅ Firebase хэрэглэгчийн нэр тохируулах
+    await credential.user?.updateDisplayName(fullName);
+    await credential.user?.reload();
 
-      // ✅ Firestore дээр хэрэглэгчийн профайл хадгалах
-      await _firestore
-          .collection('user_profiles')
-          .doc(credential.user!.uid)
-          .set({
-        'email': email,
-        'full_name': fullName,
-        'phone': phone,
-        'role': 'traveler',
-        'is_profile_complete': false,
-        'created_at': FieldValue.serverTimestamp(),
-        ...?additionalData,
-      });
+    // ✅ Имэйл баталгаажуулах имэйл илгээх
+    await credential.user?.sendEmailVerification();
 
-      return credential;
-    } catch (e) {
-      debugPrint('Sign up error: $e');
-      rethrow;
-    }
+    // ✅ Firestore дээр хэрэглэгчийн профайл хадгалах
+    await _firestore
+        .collection('user_profiles')
+        .doc(credential.user!.uid)
+        .set({
+      'email': email,
+      'full_name': fullName,
+      'phone': phone,
+      'role': 'traveler',
+      'is_profile_complete': false,
+      'created_at': FieldValue.serverTimestamp(),
+      ...?additionalData,
+    });
+
+    return credential;
+  } catch (e) {
+    debugPrint('Sign up error: $e');
+    rethrow;
   }
+}
+
 
   // Sign in
   Future<UserCredential> signIn({
