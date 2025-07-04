@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:travelmate/presentation/home_dashboard/widgets/tripedit.dart';
 import 'package:travelmate/theme/app_theme.dart';
 import 'package:travelmate/services/firebase_auth_service.dart';
 
@@ -295,186 +296,406 @@ class TripDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(trip['title']),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TripEditScreen(
-                    tripId: trip['id'],
-                    trip: trip,
-                  ),
-                ),
-              );
-
-              // Хэрвээ амжилттай хадгалагдсан бол profile таб руу буцна
-              if (result == true && context.mounted) {
-                Navigator.pop(context); // Back to previous screen
-              }
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.delete),
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text("Delete Trip"),
-                  content: Text("Are you sure you want to delete this trip?"),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text("Cancel"),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text("Delete"),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true) {
-                await FirebaseFirestore.instance
-                    .collection('trips')
-                    .doc(trip['id'])
-                    .delete();
-
-                if (context.mounted) {
-                  Navigator.pop(context); // Back after delete
-                }
-              }
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            trip['image'] != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      trip['image'],
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Image.asset(
-                        'assets/images/no-image.jpg',
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
+      body: CustomScrollView(
+        slivers: [
+          // Enhanced App Bar with Image Background
+          SliverAppBar(
+            expandedHeight: 250,
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Trip Image
+                  trip['image'] != null
+                      ? Image.network(
+                          trip['image'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            'assets/images/no-image.jpg',
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Image.asset(
+                          'assets/images/no-image.jpg',
+                          fit: BoxFit.cover,
+                        ),
+                  // Gradient Overlay
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.7),
+                        ],
                       ),
                     ),
-                  )
-                : Image.asset(
-                    'assets/images/no-image.jpg',
-                    width: double.infinity,
-                    height: 200,
-                    fit: BoxFit.cover,
                   ),
-            SizedBox(height: 2.h),
-            Text(
-              trip['title'],
-              style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+                  // Title Overlay
+                  Positioned(
+                    bottom: 20,
+                    left: 16,
+                    right: 80,
+                    child: Text(
+                      trip['title'],
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(0, 2),
+                            blurRadius: 4,
+                            color: Colors.black.withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Text(
-              "Destination: ${trip['destination']}",
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            Text("Date: ${trip['date']}"),
-            Text("Status: ${trip['status']}"),
-            SizedBox(height: 1.h),
-            Text(
-              "Highlights:",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            ...trip['highlights'].map<Widget>((h) => Text("- $h")).toList(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class TripEditScreen extends StatefulWidget {
-  final String tripId;
-  final Map<String, dynamic> trip;
-
-  const TripEditScreen({super.key, required this.tripId, required this.trip});
-
-  @override
-  State<TripEditScreen> createState() => _TripEditScreenState();
-}
-
-class _TripEditScreenState extends State<TripEditScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _titleController;
-  late TextEditingController _destinationController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.trip['title']);
-    _destinationController =
-        TextEditingController(text: widget.trip['destination']);
-  }
-
-  Future<void> _saveChanges() async {
-    if (_formKey.currentState!.validate()) {
-      await FirebaseFirestore.instance
-          .collection('trips')
-          .doc(widget.tripId)
-          .update({
-        'title': _titleController.text.trim(),
-        'destination': _destinationController.text.trim(),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-
-      if (context.mounted)
-        Navigator.pop(context, true); // return true on success
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Edit Trip")),
-      body: Padding(
-        padding: EdgeInsets.all(4.w),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(labelText: "Trip Title"),
-                validator: (val) =>
-                    val == null || val.isEmpty ? "Enter a title" : null,
+            actions: [
+              // Edit Button
+              Container(
+                margin: EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.edit, color: Colors.black87),
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TripEditScreen(
+                          tripId: trip['id'],
+                          trip: trip,
+                        ),
+                      ),
+                    );
+                    if (result == true && context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
               ),
-              SizedBox(height: 2.h),
-              TextFormField(
-                controller: _destinationController,
-                decoration: const InputDecoration(labelText: "Destination"),
-                validator: (val) =>
-                    val == null || val.isEmpty ? "Enter a destination" : null,
-              ),
-              SizedBox(height: 4.h),
-              ElevatedButton(
-                onPressed: _saveChanges,
-                child: const Text("Save Changes"),
+              // Delete Button
+              Container(
+                margin: EdgeInsets.only(right: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.delete, color: Colors.white),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text("Delete Trip"),
+                          ],
+                        ),
+                        content: Text(
+                          "Are you sure you want to delete this trip? This action cannot be undone.",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text("Cancel"),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Text("Delete"),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      await FirebaseFirestore.instance
+                          .collection('trips')
+                          .doc(trip['id'])
+                          .delete();
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                ),
               ),
             ],
           ),
-        ),
+          // Trip Details Content
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(4.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Trip Info Cards
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildInfoCard(
+                          icon: Icons.location_on,
+                          label: "Destination",
+                          value: trip['destination'],
+                          color: Colors.blue,
+                        ),
+                      ),
+                      SizedBox(width: 3.w),
+                      Expanded(
+                        child: _buildInfoCard(
+                          icon: Icons.calendar_today,
+                          label: "Date",
+                          value: trip['date'],
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 2.h),
+                  
+                  // Status Card
+                  _buildStatusCard(),
+                  SizedBox(height: 3.h),
+                     // ✅ Description Section
+                  if (trip['description'] != null &&
+                      trip['description'].toString().trim().isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Description",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 1.h),
+                        Text(
+                          trip['description'],
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                      ],
+                    ),
+                  // Highlights Section
+                  _buildHighlightsSection(),
+                  SizedBox(height: 2.h),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusCard() {
+    Color statusColor;
+    IconData statusIcon;
+    
+    switch (trip['status'].toLowerCase()) {
+      case 'completed':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        break;
+      case 'ongoing':
+        statusColor = Colors.orange;
+        statusIcon = Icons.access_time;
+        break;
+      case 'upcoming':
+        statusColor = Colors.blue;
+        statusIcon = Icons.schedule;
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.help;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(statusIcon, color: statusColor, size: 24),
+          SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Status",
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                trip['status'],
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightsSection() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.purple.withOpacity(0.1),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.star, color: Colors.purple, size: 24),
+                SizedBox(width: 12),
+                Text(
+                  "Trip Highlights",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.purple,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              children: trip['highlights']
+                  .map<Widget>((highlight) => Container(
+                        margin: EdgeInsets.only(bottom: 12),
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                highlight,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+        ],
       ),
     );
   }

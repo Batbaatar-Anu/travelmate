@@ -16,7 +16,7 @@ class AppRoutes {
   static const String userRegistration = '/user-registration';
   static const String homeDashboard = '/home-dashboard';
   static const String homeDetail = '/home-detail';
-  static const String newTrip = '/new-trip'; // жижиг үсгээр camelCase нэрлэх нь зөв
+  static const String newTrip = '/new-trip'; 
 
   static Map<String, WidgetBuilder> routes = {
     initial: (context) => const OnboardingFlow(),

@@ -66,9 +66,15 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   void _navigateToRegistration() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('has_seen_onboarding', true); // ✅ flag хадгална
+    await prefs.setBool('has_seen_onboarding', true); 
 
     Navigator.pushReplacementNamed(context, '/user-registration');
+  }
+
+  void _completeOnboarding(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasSeenOnboarding', true);
+    Navigator.pushReplacementNamed(context, AppRoutes.homeDashboard);
   }
 
   @override
@@ -158,7 +164,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                       width: double.infinity,
                       height: 6.h,
                       child: ElevatedButton(
-                        onPressed: _nextPage,
+                        onPressed: _currentPage == _onboardingData.length - 1
+                            ? () => _completeOnboarding(context)
+                            : _nextPage,
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               AppTheme.lightTheme.colorScheme.secondary,

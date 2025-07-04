@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 🆕
 import 'package:sizer/sizer.dart';
 
 import 'package:travelmate/config_loader.dart';
@@ -9,6 +10,7 @@ import 'package:travelmate/firebase_options.dart';
 
 import 'core/app_export.dart';
 import 'widgets/custom_error_widget.dart';
+import 'routes/app_routes.dart'; // Та routes файлаа ингэж импортолж байгаарай
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,21 +26,29 @@ Future<void> main() async {
   // ✅ App config ачаалалт
   await Config.load();
 
+  // ✅ Onboarding flag шалгах
+  final prefs = await SharedPreferences.getInstance();
+  final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+
   // ✅ Алдаа гарсан үед UI дээр харуулах өөрчлөлт
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return CustomErrorWidget(errorDetails: details);
   };
 
-  // ✅ Зөвхөн portrait горимд ажиллах
+  // ✅ Portrait горимд ажиллах
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  runApp(const MyApp());
+  runApp(MyApp(initialRoute: hasSeenOnboarding
+      ? AppRoutes.homeDashboard
+      : AppRoutes.onboardingFlow));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +68,7 @@ class MyApp extends StatelessWidget {
           );
         },
         routes: AppRoutes.routes,
-        initialRoute: AppRoutes.initial,
+        initialRoute: initialRoute,
       );
     });
   }

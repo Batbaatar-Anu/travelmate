@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:travelmate/presentation/home_dashboard/profile_tab_widget.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/profiletab.dart';
 import 'package:travelmate/services/firebase_auth_service.dart';
 import '../../core/app_export.dart';
@@ -286,13 +285,6 @@ class _HomeDashboardState extends State<HomeDashboard>
     });
   }
 
-  String _formatDateRange(String? start, String? end) {
-    if (start == null || end == null) return '';
-    final startDate = DateTime.parse(start);
-    final endDate = DateTime.parse(end);
-    return "${startDate.month}/${startDate.day} - ${endDate.month}/${endDate.day}";
-  }
-
   Future<void> _handleRefresh() async {
     setState(() {
       _isRefreshing = true;
@@ -526,7 +518,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                   child: Text(
                     "View All",
                     style: TextStyle(
-                      fontSize: 10.sp, // 👈 Жижиг font
+                      fontSize: 10.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
