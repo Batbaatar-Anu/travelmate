@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:travelmate/presentation/home_dashboard/profile_tab_widget.dart';
+import 'package:travelmate/presentation/home_dashboard/widgets/profiletab.dart';
 import 'package:travelmate/services/firebase_auth_service.dart';
 import '../../core/app_export.dart';
 import './widgets/recent_trip_card_widget.dart';
@@ -213,44 +214,44 @@ class _HomeDashboardState extends State<HomeDashboard>
   //     });
   //   }
   // }
-  Future<void> _fetchUserOwnTrips() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  // Future<void> _fetchUserOwnTrips() async {
+  //   final user = FirebaseAuth.instance.currentUser;
+  //   if (user == null) return;
 
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('trips')
-          .where('user_id', isEqualTo: user.uid)
-          .orderBy('created_at', descending: true)
-          .get();
+  //   try {
+  //     final snapshot = await FirebaseFirestore.instance
+  //         .collection('trips')
+  //         .where('user_id', isEqualTo: user.uid)
+  //         .orderBy('created_at', descending: true)
+  //         .get();
 
-      setState(() {
-        postedTrips = snapshot.docs.map((doc) {
-          final data = doc.data();
-          final Timestamp createdAt = data['created_at'] ?? Timestamp.now();
-          final createdDate = createdAt.toDate();
+  //     setState(() {
+  //       postedTrips = snapshot.docs.map((doc) {
+  //         final data = doc.data();
+  //         final Timestamp createdAt = data['created_at'] ?? Timestamp.now();
+  //         final createdDate = createdAt.toDate();
 
-          final formattedDate =
-              "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}";
+  //         final formattedDate =
+  //             "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}";
 
-          return {
-            'id': doc.id,
-            'title': data['title'] ?? 'Untitled',
-            'destination': data['destination'] ?? '',
-            'image': (data['media_url'] ?? '').toString().isNotEmpty
-                ? data['media_url']
-                : 'https://via.placeholder.com/300',
-            'date': formattedDate,
-            'status': 'Upcoming',
-            'rating': data['rating'] ?? 0.0,
-            'highlights': List<String>.from(data['highlights'] ?? []),
-          };
-        }).toList();
-      });
-    } catch (e) {
-      debugPrint('Error fetching user trips: $e');
-    }
-  }
+  //         return {
+  //           'id': doc.id,
+  //           'title': data['title'] ?? 'Untitled',
+  //           'destination': data['destination'] ?? '',
+  //           'image': (data['media_url'] ?? '').toString().isNotEmpty
+  //               ? data['media_url']
+  //               : 'https://via.placeholder.com/300',
+  //           'date': formattedDate,
+  //           'status': 'Upcoming',
+  //           'rating': data['rating'] ?? 0.0,
+  //           'highlights': List<String>.from(data['highlights'] ?? []),
+  //         };
+  //       }).toList();
+  //     });
+  //   } catch (e) {
+  //     debugPrint('Error fetching user trips: $e');
+  //   }
+  // }
 
   Future<void> _fetchPostedTrips() async {
     final snapshot = await FirebaseFirestore.instance
@@ -317,9 +318,9 @@ class _HomeDashboardState extends State<HomeDashboard>
       case 1:
         Navigator.pushNamed(context, '/home-detail');
         break;
-      case 2:
-        Navigator.pushNamed(context, '/push-notification-settings');
-        break;
+      // case 2:
+      //   Navigator.pushNamed(context, '/push-notification-settings');
+      //   break;
     }
   }
 
@@ -360,8 +361,8 @@ class _HomeDashboardState extends State<HomeDashboard>
                 _buildRecommendedDestinationsSection(),
                 _buildTravelTipsSection(),
                 _buildUpcomingRemindersSection(),
-              ] else if (_currentTabIndex == 3)
-                _buildProfileTab(context),
+              ] else if (_currentTabIndex == 2)
+                buildProfileTab(context, _currentUser),
               SliverToBoxAdapter(child: SizedBox(height: 10.h)),
             ],
           ),
@@ -369,72 +370,6 @@ class _HomeDashboardState extends State<HomeDashboard>
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
       floatingActionButton: _buildFloatingActionButton(),
-    );
-  }
-
-  Widget _buildProfileTab(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Profile",
-              style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 2.h),
-            ListTile(
-              leading:
-                  Icon(Icons.person, color: AppTheme.lightTheme.primaryColor),
-              title: Text(_currentUser?.displayName ?? 'Guest User'),
-              subtitle: Text(_currentUser?.email ?? "No email"),
-            ),
-            // Divider(),
-            // // ListTile(
-            // //   leading: Icon(Icons.settings),
-            // //   title: Text("Settings"),
-            // //   onTap: () => Navigator.pushNamed(context, '/settings'),
-            // // ),
-            ListTile(
-              leading: Icon(Icons.logout, color: Colors.red),
-              title: Text("Log Out", style: TextStyle(color: Colors.red)),
-              onTap: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text("Log Out"),
-                    content: Text("Are you sure you want to log out?"),
-                    actions: [
-                      TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: Text("Cancel")),
-                      ElevatedButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: Text("Log Out")),
-                    ],
-                  ),
-                );
-
-                if (confirm == true) {
-                  final auth = FirebaseAuthService();
-                  await auth.signOut();
-
-                  if (context.mounted) {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/user-login',
-                      (route) => false,
-                    );
-                  }
-                }
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -829,20 +764,20 @@ class _HomeDashboardState extends State<HomeDashboard>
           ),
           label: 'Explore',
         ),
-        BottomNavigationBarItem(
-          icon: CustomIconWidget(
-            iconName: 'notifications',
-            color: _currentTabIndex == 2
-                ? AppTheme.lightTheme.primaryColor
-                : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-            size: 24,
-          ),
-          label: 'Notifications',
-        ),
+        // BottomNavigationBarItem(
+        //   icon: CustomIconWidget(
+        //     iconName: 'notifications',
+        //     color: _currentTabIndex == 2
+        //         ? AppTheme.lightTheme.primaryColor
+        //         : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+        //     size: 24,
+        //   ),
+        //   label: 'Notifications',
+        // ),
         BottomNavigationBarItem(
           icon: CustomIconWidget(
             iconName: 'person',
-            color: _currentTabIndex == 3
+            color: _currentTabIndex == 2
                 ? AppTheme.lightTheme.primaryColor
                 : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
             size: 24,
