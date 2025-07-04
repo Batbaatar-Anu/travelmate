@@ -544,7 +544,11 @@ class _HomeDashboardState extends State<HomeDashboard>
                   status: trip['status'] ?? 'Upcoming',
                   rating: trip['rating'] ?? 0.0,
                   highlights: trip['highlights'] ?? [],
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.pushNamed(
+                        context, '/home-detail' // Passing the trip data
+                        );
+                  },
                   onShare: () {},
                   onEdit: () {},
                 );
