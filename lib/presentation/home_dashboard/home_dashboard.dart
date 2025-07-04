@@ -546,7 +546,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                   highlights: trip['highlights'] ?? [],
                   onTap: () {
                     Navigator.pushNamed(
-                        context, '/home-detail' // Passing the trip data
+                        context, '/home-detail'
                         );
                   },
                   onShare: () {},
@@ -758,7 +758,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                 : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
             size: 24,
           ),
-          label: 'Explore',
+          label: 'Plan',
         ),
         // BottomNavigationBarItem(
         //   icon: CustomIconWidget(

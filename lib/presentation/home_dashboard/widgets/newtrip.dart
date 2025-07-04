@@ -204,7 +204,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundImage: NetworkImage("https://i.pravatar.cc/150"),
+                        backgroundImage:
+                            NetworkImage("https://i.pravatar.cc/150"),
                         radius: 28,
                         backgroundColor: Colors.white,
                       ),
@@ -318,7 +319,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
                         child: _buildInputField(
                           controller: _latitudeController,
                           hint: "Өргөрөг",
-                          keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          keyboardType:
+                              TextInputType.numberWithOptions(decimal: true),
                         ),
                       ),
                       SizedBox(width: 3.w),
@@ -326,7 +328,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
                         child: _buildInputField(
                           controller: _longitudeController,
                           hint: "Уртраг",
-                          keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          keyboardType:
+                              TextInputType.numberWithOptions(decimal: true),
                         ),
                       ),
                     ],
