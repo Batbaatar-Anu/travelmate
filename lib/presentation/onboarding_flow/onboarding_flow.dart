@@ -72,10 +72,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   void _completeOnboarding(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasSeenOnboarding', true);
-    Navigator.pushReplacementNamed(context, AppRoutes.homeDashboard);
-  }
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('hasSeenOnboarding', true);
+  Navigator.pushReplacementNamed(context, AppRoutes.userRegistration);
+}
+
 
   @override
   void dispose() {

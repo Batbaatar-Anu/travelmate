@@ -107,63 +107,63 @@ class _HomeDashboardState extends State<HomeDashboard>
     }
   ];
 
-  final List<Map<String, dynamic>> travelTips = [
-    {
-      "id": 1,
-      "title": "10 Essential Packing Tips for International Travel",
-      "image":
-          "https://images.pexels.com/photos/1008155/pexels-photo-1008155.jpeg",
-      "readTime": "5 min read",
-      "category": "Packing",
-      "excerpt": "Master the art of efficient packing with these expert tips..."
-    },
-    {
-      "id": 2,
-      "title": "Budget Travel: How to See the World for Less",
-      "image":
-          "https://images.pexels.com/photos/1010657/pexels-photo-1010657.jpeg",
-      "readTime": "8 min read",
-      "category": "Budget",
-      "excerpt":
-          "Discover proven strategies to travel more while spending less..."
-    },
-    {
-      "id": 3,
-      "title": "Solo Female Travel Safety Guide",
-      "image":
-          "https://images.pexels.com/photos/1371360/pexels-photo-1371360.jpeg",
-      "readTime": "6 min read",
-      "category": "Safety",
-      "excerpt": "Essential safety tips for confident solo female travelers..."
-    }
-  ];
+  // final List<Map<String, dynamic>> travelTips = [
+  //   {
+  //     "id": 1,
+  //     "title": "10 Essential Packing Tips for International Travel",
+  //     "image":
+  //         "https://images.pexels.com/photos/1008155/pexels-photo-1008155.jpeg",
+  //     "readTime": "5 min read",
+  //     "category": "Packing",
+  //     "excerpt": "Master the art of efficient packing with these expert tips..."
+  //   },
+  //   {
+  //     "id": 2,
+  //     "title": "Budget Travel: How to See the World for Less",
+  //     "image":
+  //         "https://images.pexels.com/photos/1010657/pexels-photo-1010657.jpeg",
+  //     "readTime": "8 min read",
+  //     "category": "Budget",
+  //     "excerpt":
+  //         "Discover proven strategies to travel more while spending less..."
+  //   },
+  //   {
+  //     "id": 3,
+  //     "title": "Solo Female Travel Safety Guide",
+  //     "image":
+  //         "https://images.pexels.com/photos/1371360/pexels-photo-1371360.jpeg",
+  //     "readTime": "6 min read",
+  //     "category": "Safety",
+  //     "excerpt": "Essential safety tips for confident solo female travelers..."
+  //   }
+  // ];
 
-  final List<Map<String, dynamic>> upcomingReminders = [
-    {
-      "id": 1,
-      "title": "Flight Check-in",
-      "subtitle": "Bali Trip - Check in opens in 2 hours",
-      "time": "2 hours",
-      "type": "flight",
-      "priority": "high"
-    },
-    {
-      "id": 2,
-      "title": "Passport Renewal",
-      "subtitle": "Expires in 6 months - Renew now",
-      "time": "6 months",
-      "type": "document",
-      "priority": "medium"
-    },
-    {
-      "id": 3,
-      "title": "Travel Insurance",
-      "subtitle": "Purchase for upcoming Bali trip",
-      "time": "3 days",
-      "type": "insurance",
-      "priority": "high"
-    }
-  ];
+  // final List<Map<String, dynamic>> upcomingReminders = [
+  //   {
+  //     "id": 1,
+  //     "title": "Flight Check-in",
+  //     "subtitle": "Bali Trip - Check in opens in 2 hours",
+  //     "time": "2 hours",
+  //     "type": "flight",
+  //     "priority": "high"
+  //   },
+  //   {
+  //     "id": 2,
+  //     "title": "Passport Renewal",
+  //     "subtitle": "Expires in 6 months - Renew now",
+  //     "time": "6 months",
+  //     "type": "document",
+  //     "priority": "medium"
+  //   },
+  //   {
+  //     "id": 3,
+  //     "title": "Travel Insurance",
+  //     "subtitle": "Purchase for upcoming Bali trip",
+  //     "time": "3 days",
+  //     "type": "insurance",
+  //     "priority": "high"
+  //   }
+  // ];
 
   @override
   void initState() {
@@ -349,10 +349,11 @@ class _HomeDashboardState extends State<HomeDashboard>
               _buildStickyHeader(),
               if (_currentTabIndex == 0) ...[
                 _buildHeroSection(),
-                _buildRecentTripsSection(),
                 _buildRecommendedDestinationsSection(),
-                _buildTravelTipsSection(),
-                _buildUpcomingRemindersSection(),
+
+                _buildRecentTripsSection(),
+                // _buildTravelTipsSection(),
+                // _buildUpcomingRemindersSection(),
               ] else if (_currentTabIndex == 2)
                 buildProfileTab(context, _currentUser),
               SliverToBoxAdapter(child: SizedBox(height: 10.h)),
@@ -370,6 +371,7 @@ class _HomeDashboardState extends State<HomeDashboard>
     final displayName = currentUser?.displayName ?? 'Traveler';
 
     return SliverAppBar(
+      automaticallyImplyLeading: false,
       floating: true,
       pinned: true,
       snap: false,
@@ -498,64 +500,51 @@ class _HomeDashboardState extends State<HomeDashboard>
 
   Widget _buildRecentTripsSection() {
     return SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 6.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Recent Trips",
-                  style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.sp,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/home-detail'),
-                  child: Text(
-                    "View All",
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w500,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🏷 Section title
+            Text(
+              "Recent Trips",
+              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
+            ),
+            SizedBox(height: 2.h),
+
+            // 🧳 Recent trips list
+            SizedBox(
+              height: postedTrips.length * 22.h, // or use shrinkWrap list
+              child: ListView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: postedTrips.length,
+                itemBuilder: (context, index) {
+                  final trip = postedTrips[index];
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 2.h),
+                    child: RecentTripCardWidget(
+                      title: trip['title'] ?? 'Untitled',
+                      destination: trip['destination'] ?? '',
+                      imageUrl: trip['image'] ?? '',
+                      date: trip['date'] ?? '',
+                      status: trip['status'] ?? 'Upcoming',
+                      rating: trip['rating'] ?? 0.0,
+                      highlights: trip['highlights'] ?? [],
+                      onTap: () {
+                        Navigator.pushNamed(context, '/home-detail');
+                      },
+                      onShare: () {},
+                      onEdit: () {},
                     ),
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
-          ),
-          SizedBox(height: 1.h),
-          SizedBox(
-            height: 25.h,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 4.w),
-              itemCount: postedTrips.length,
-              separatorBuilder: (_, __) => SizedBox(width: 3.w),
-              itemBuilder: (context, index) {
-                final trip = postedTrips[index];
-                return RecentTripCardWidget(
-                  title: trip['title'] ?? 'Untitled',
-                  destination: trip['destination'] ?? '',
-                  imageUrl: trip['image'] ?? '',
-                  date: trip['date'] ?? '',
-                  status: trip['status'] ?? 'Upcoming',
-                  rating: trip['rating'] ?? 0.0,
-                  highlights: trip['highlights'] ?? [],
-                  onTap: () {
-                    Navigator.pushNamed(
-                        context, '/home-detail'
-                        );
-                  },
-                  onShare: () {},
-                  onEdit: () {},
-                );
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -627,108 +616,108 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-  Widget _buildTravelTipsSection() {
-    return SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 3.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Travel Tips",
-                  style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/home-detail'),
-                  child: Text("View All"),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 1.h),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            itemCount: travelTips.length,
-            itemBuilder: (context, index) {
-              final tip = travelTips[index];
-              return Container(
-                margin: EdgeInsets.only(bottom: 2.h),
-                child: TravelTipCardWidget(
-                  title: tip["title"] as String,
-                  imageUrl: tip["image"] as String,
-                  readTime: tip["readTime"] as String,
-                  category: tip["category"] as String,
-                  excerpt: tip["excerpt"] as String,
-                  onTap: () => Navigator.pushNamed(context, '/home-detail'),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildTravelTipsSection() {
+  //   return SliverToBoxAdapter(
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         SizedBox(height: 3.h),
+  //         Padding(
+  //           padding: EdgeInsets.symmetric(horizontal: 4.w),
+  //           child: Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               Text(
+  //                 "Travel Tips",
+  //                 style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+  //                   fontWeight: FontWeight.w600,
+  //                 ),
+  //               ),
+  //               TextButton(
+  //                 onPressed: () => Navigator.pushNamed(context, '/home-detail'),
+  //                 child: Text("View All"),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         SizedBox(height: 1.h),
+  //         ListView.builder(
+  //           shrinkWrap: true,
+  //           physics: const NeverScrollableScrollPhysics(),
+  //           padding: EdgeInsets.symmetric(horizontal: 4.w),
+  //           itemCount: travelTips.length,
+  //           itemBuilder: (context, index) {
+  //             final tip = travelTips[index];
+  //             return Container(
+  //               margin: EdgeInsets.only(bottom: 2.h),
+  //               child: TravelTipCardWidget(
+  //                 title: tip["title"] as String,
+  //                 imageUrl: tip["image"] as String,
+  //                 readTime: tip["readTime"] as String,
+  //                 category: tip["category"] as String,
+  //                 excerpt: tip["excerpt"] as String,
+  //                 onTap: () => Navigator.pushNamed(context, '/home-detail'),
+  //               ),
+  //             );
+  //           },
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
-  Widget _buildUpcomingRemindersSection() {
-    return SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 3.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Upcoming Reminders",
-                  style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(
-                      context, '/push-notification-settings'),
-                  child: Text("View All"),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 1.h),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            itemCount:
-                upcomingReminders.length > 2 ? 2 : upcomingReminders.length,
-            itemBuilder: (context, index) {
-              final reminder = upcomingReminders[index];
-              return Container(
-                margin: EdgeInsets.only(bottom: 1.h),
-                child: UpcomingReminderWidget(
-                  title: reminder["title"] as String,
-                  subtitle: reminder["subtitle"] as String,
-                  time: reminder["time"] as String,
-                  type: reminder["type"] as String,
-                  priority: reminder["priority"] as String,
-                  onTap: () => Navigator.pushNamed(
-                      context, '/push-notification-settings'),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildUpcomingRemindersSection() {
+  //   return SliverToBoxAdapter(
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         SizedBox(height: 3.h),
+  //         Padding(
+  //           padding: EdgeInsets.symmetric(horizontal: 4.w),
+  //           child: Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               Text(
+  //                 "Upcoming Reminders",
+  //                 style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+  //                   fontWeight: FontWeight.w600,
+  //                 ),
+  //               ),
+  //               TextButton(
+  //                 onPressed: () => Navigator.pushNamed(
+  //                     context, '/push-notification-settings'),
+  //                 child: Text("View All"),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         SizedBox(height: 1.h),
+  //         ListView.builder(
+  //           shrinkWrap: true,
+  //           physics: const NeverScrollableScrollPhysics(),
+  //           padding: EdgeInsets.symmetric(horizontal: 4.w),
+  //           itemCount:
+  //               upcomingReminders.length > 2 ? 2 : upcomingReminders.length,
+  //           itemBuilder: (context, index) {
+  //             final reminder = upcomingReminders[index];
+  //             return Container(
+  //               margin: EdgeInsets.only(bottom: 1.h),
+  //               child: UpcomingReminderWidget(
+  //                 title: reminder["title"] as String,
+  //                 subtitle: reminder["subtitle"] as String,
+  //                 time: reminder["time"] as String,
+  //                 type: reminder["type"] as String,
+  //                 priority: reminder["priority"] as String,
+  //                 onTap: () => Navigator.pushNamed(
+  //                     context, '/push-notification-settings'),
+  //               ),
+  //             );
+  //           },
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildBottomNavigationBar() {
     return BottomNavigationBar(

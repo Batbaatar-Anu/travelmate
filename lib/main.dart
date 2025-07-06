@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -12,38 +13,47 @@ import 'core/app_export.dart';
 import 'widgets/custom_error_widget.dart';
 import 'routes/app_routes.dart'; // Та routes файлаа ингэж импортолж байгаарай
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ✅ Firebase инициализаци
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // ✅ Firebase Cloud Messaging инициализаци
   await FirebaseMessagingService.instance.initFCM();
-
-  // ✅ App config ачаалалт
   await Config.load();
+final prefs = await SharedPreferences.getInstance();
+final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
 
-  // ✅ Onboarding flag шалгах
-  final prefs = await SharedPreferences.getInstance();
-  final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+User? currentUser = FirebaseAuth.instance.currentUser;
 
-  // ✅ Алдаа гарсан үед UI дээр харуулах өөрчлөлт
+// 🔄 Firebase хэрэглэгчийг шинэчлэх
+if (currentUser != null) {
+  await currentUser.reload(); // 🆕 refresh user
+  currentUser = FirebaseAuth.instance.currentUser; // update object
+}
+
+String initialRoute;
+
+if (!hasSeenOnboarding) {
+  initialRoute = AppRoutes.onboardingFlow;
+} else if (currentUser != null && currentUser.emailVerified) {
+  initialRoute = AppRoutes.homeDashboard;
+} else {
+  initialRoute = AppRoutes.userLogin;
+}
+
+  // UI error catcher
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return CustomErrorWidget(errorDetails: details);
   };
 
-  // ✅ Portrait горимд ажиллах
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  runApp(MyApp(initialRoute: hasSeenOnboarding
-      ? AppRoutes.homeDashboard
-      : AppRoutes.onboardingFlow));
+  runApp(MyApp(initialRoute: initialRoute));
 }
+
 
 class MyApp extends StatelessWidget {
   final String initialRoute;

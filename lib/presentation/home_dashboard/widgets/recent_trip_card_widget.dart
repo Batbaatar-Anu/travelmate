@@ -4,7 +4,7 @@ import 'package:sizer/sizer.dart';
 import '../../../core/app_export.dart';
 
 class RecentTripCardWidget extends StatelessWidget {
-  final String title; // 🆕
+  final String title;
   final String destination;
   final String imageUrl;
   final String date;
@@ -17,7 +17,7 @@ class RecentTripCardWidget extends StatelessWidget {
 
   const RecentTripCardWidget({
     super.key,
-    required this.title, // 🆕
+    required this.title,
     required this.destination,
     required this.imageUrl,
     required this.date,
@@ -35,7 +35,7 @@ class RecentTripCardWidget extends StatelessWidget {
       onTap: onTap,
       onLongPress: () => _showContextMenu(context),
       child: Container(
-        width: 70.w,
+        width: double.infinity,
         decoration: BoxDecoration(
           color: AppTheme.lightTheme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
@@ -102,79 +102,75 @@ class RecentTripCardWidget extends StatelessWidget {
   }
 
   Widget _buildContentSection() {
-    return Expanded(
-      child: Padding(
-        padding: EdgeInsets.all(3.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🆕 Title харагдах хэсэг
-            Text(
-              title,
-              style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.lightTheme.colorScheme.primary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+    return Padding(
+      padding: EdgeInsets.all(3.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// Title
+          Text(
+            title,
+            style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.lightTheme.colorScheme.primary,
             ),
-            SizedBox(height: 0.5.h),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 0.5.h),
 
-            // ✅ Destination
-            Text(
-              destination,
-              style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          /// Destination
+          Text(
+            destination,
+            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 0.5.h),
 
-            SizedBox(height: 0.5.h),
-
-            // ✅ Date
-            Text(
-              date,
-              style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-              ),
+          /// Date
+          Text(
+            date,
+            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
             ),
+          ),
 
-            // ✅ Rating
-            if (rating > 0) ...[
-              SizedBox(height: 1.h),
-              Row(
-                children: [
-                  CustomIconWidget(
-                    iconName: 'star',
-                    color: Colors.amber,
-                    size: 16,
-                  ),
-                  SizedBox(width: 1.w),
-                  Text(
-                    rating.toString(),
-                    style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-
-            // ✅ Highlights
+          /// Rating
+          if (rating > 0) ...[
             SizedBox(height: 1.h),
-            Expanded(
-              child: Text(
-                highlights.take(2).join(" • "),
-                style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                  color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+            Row(
+              children: [
+                CustomIconWidget(
+                  iconName: 'star',
+                  color: Colors.amber,
+                  size: 16,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+                SizedBox(width: 1.w),
+                Text(
+                  rating.toString(),
+                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
+
+          SizedBox(height: 1.h),
+
+          /// Highlights
+          Text(
+            highlights.take(2).join(" • "),
+            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
