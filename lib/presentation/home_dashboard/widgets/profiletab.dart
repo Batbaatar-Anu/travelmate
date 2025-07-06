@@ -94,7 +94,7 @@ Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
         .map((snapshot) {
           // Map each document to a Map<String, dynamic>
           return snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>; // Get document data
+            final data = doc.data(); // Get document data
 
             // Extract and format the 'created_at' timestamp
             final Timestamp createdAt = data['created_at'] ?? Timestamp.now(); // Default to current time if missing
@@ -323,29 +323,6 @@ Widget _buildLogoutSection(BuildContext context) {
       },
     ),
   );
-}
-
-Future<int> _getUserPostsCount(User? user) async {
-  if (user == null) return 0;
-  try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('posts')
-        .where('userId', isEqualTo: user.uid)
-        .get();
-    return snapshot.docs.length;
-  } catch (e) {
-    return 0;
-  }
-}
-
-Stream<List<Post>> _getUserPostsStream(User? user) {
-  if (user == null) return Stream.value([]);
-  return FirebaseFirestore.instance
-      .collection('posts')
-      .where('userId', isEqualTo: user.uid)
-      .orderBy('timestamp', descending: true)
-      .snapshots()
-      .map((snap) => snap.docs.map((doc) => Post.fromFirestore(doc)).toList());
 }
 
 class TripDetailScreen extends StatelessWidget {

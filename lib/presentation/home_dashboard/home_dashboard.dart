@@ -8,9 +8,9 @@ import 'package:travelmate/services/firebase_auth_service.dart';
 import '../../core/app_export.dart';
 import './widgets/recent_trip_card_widget.dart';
 import './widgets/recommended_destination_widget.dart';
-import './widgets/travel_tip_card_widget.dart';
+// import './widgets/travel_tip_card_widget.dart';
 import './widgets/trip_countdown_widget.dart';
-import './widgets/upcoming_reminder_widget.dart';
+// import './widgets/upcoming_reminder_widget.dart';
 import './widgets/weather_widget.dart';
 
 class HomeDashboard extends StatefulWidget {
@@ -31,81 +31,81 @@ class _HomeDashboardState extends State<HomeDashboard>
 
   // Mock data for travel dashboard
   List<Map<String, dynamic>> postedTrips = [];
-  final List<Map<String, dynamic>> recentTrips = [
-    {
-      "id": 1,
-      "destination": "Paris, France",
-      "image":
-          "https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg",
-      "date": "Dec 15-22, 2023",
-      "status": "Completed",
-      "rating": 4.8,
-      "highlights": ["Eiffel Tower", "Louvre Museum", "Seine River Cruise"]
-    },
-    {
-      "id": 2,
-      "destination": "Tokyo, Japan",
-      "image":
-          "https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg",
-      "date": "Jan 10-18, 2024",
-      "status": "Completed",
-      "rating": 4.9,
-      "highlights": ["Shibuya Crossing", "Mount Fuji", "Cherry Blossoms"]
-    },
-    {
-      "id": 3,
-      "destination": "Bali, Indonesia",
-      "image":
-          "https://images.pexels.com/photos/2474690/pexels-photo-2474690.jpeg",
-      "date": "Mar 5-12, 2024",
-      "status": "Upcoming",
-      "rating": 0.0,
-      "highlights": ["Beach Resorts", "Temple Tours", "Rice Terraces"]
-    }
-  ];
+  // final List<Map<String, dynamic>> recentTrips = [
+  //   {
+  //     "id": 1,
+  //     "destination": "Paris, France",
+  //     "image":
+  //         "https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg",
+  //     "date": "Dec 15-22, 2023",
+  //     "status": "Completed",
+  //     "rating": 4.8,
+  //     "highlights": ["Eiffel Tower", "Louvre Museum", "Seine River Cruise"]
+  //   },
+  //   {
+  //     "id": 2,
+  //     "destination": "Tokyo, Japan",
+  //     "image":
+  //         "https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg",
+  //     "date": "Jan 10-18, 2024",
+  //     "status": "Completed",
+  //     "rating": 4.9,
+  //     "highlights": ["Shibuya Crossing", "Mount Fuji", "Cherry Blossoms"]
+  //   },
+  //   {
+  //     "id": 3,
+  //     "destination": "Bali, Indonesia",
+  //     "image":
+  //         "https://images.pexels.com/photos/2474690/pexels-photo-2474690.jpeg",
+  //     "date": "Mar 5-12, 2024",
+  //     "status": "Upcoming",
+  //     "rating": 0.0,
+  //     "highlights": ["Beach Resorts", "Temple Tours", "Rice Terraces"]
+  //   }
+  // ];
 
-  final List<Map<String, dynamic>> recommendedDestinations = [
-    {
-      "id": 1,
-      "name": "Santorini, Greece",
-      "image":
-          "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
-      "price": "\$1,299",
-      "rating": 4.7,
-      "duration": "7 days",
-      "category": "Beach & Culture"
-    },
-    {
-      "id": 2,
-      "name": "Swiss Alps",
-      "image":
-          "https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg",
-      "price": "\$1,899",
-      "rating": 4.9,
-      "duration": "10 days",
-      "category": "Adventure"
-    },
-    {
-      "id": 3,
-      "name": "Dubai, UAE",
-      "image":
-          "https://images.pexels.com/photos/1470405/pexels-photo-1470405.jpeg",
-      "price": "\$999",
-      "rating": 4.6,
-      "duration": "5 days",
-      "category": "Luxury"
-    },
-    {
-      "id": 4,
-      "name": "Iceland",
-      "image":
-          "https://images.pexels.com/photos/1433052/pexels-photo-1433052.jpeg",
-      "price": "\$1,599",
-      "rating": 4.8,
-      "duration": "8 days",
-      "category": "Nature"
-    }
-  ];
+  // final List<Map<String, dynamic>> recommendedDestinations = [
+  //   {
+  //     "id": 1,
+  //     "name": "Santorini, Greece",
+  //     "image":
+  //         "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
+  //     "price": "\$1,299",
+  //     "rating": 4.7,
+  //     "duration": "7 days",
+  //     "category": "Beach & Culture"
+  //   },
+  //   {
+  //     "id": 2,
+  //     "name": "Swiss Alps",
+  //     "image":
+  //         "https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg",
+  //     "price": "\$1,899",
+  //     "rating": 4.9,
+  //     "duration": "10 days",
+  //     "category": "Adventure"
+  //   },
+  //   {
+  //     "id": 3,
+  //     "name": "Dubai, UAE",
+  //     "image":
+  //         "https://images.pexels.com/photos/1470405/pexels-photo-1470405.jpeg",
+  //     "price": "\$999",
+  //     "rating": 4.6,
+  //     "duration": "5 days",
+  //     "category": "Luxury"
+  //   },
+  //   {
+  //     "id": 4,
+  //     "name": "Iceland",
+  //     "image":
+  //         "https://images.pexels.com/photos/1433052/pexels-photo-1433052.jpeg",
+  //     "price": "\$1,599",
+  //     "rating": 4.8,
+  //     "duration": "8 days",
+  //     "category": "Nature"
+  //   }
+  // ];
 
   // final List<Map<String, dynamic>> travelTips = [
   //   {
@@ -165,13 +165,63 @@ class _HomeDashboardState extends State<HomeDashboard>
   //   }
   // ];
 
+List<Map<String, dynamic>> recommendedDestinations = [];
+
+Stream<List<Map<String, dynamic>>> fetchRecommendedDestinations() {
+  return FirebaseFirestore.instance
+      .collection('destinations')
+      .orderBy('rating', descending: true)
+      .snapshots()
+      .map((snapshot) {
+        return snapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'name': data['name'] ?? '',
+            'image': (data['image'] != null &&
+                      data['image'].toString().isNotEmpty)
+                ? data['image']
+                : 'https://via.placeholder.com/300',
+            'price': data['price'] ?? '',
+            'rating': (data['rating'] ?? 0.0).toDouble(),
+            'duration': data['duration'] ?? '',
+            'category': data['category'] ?? '',
+          };
+        }).toList();
+      });
+}
+
+Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) {
+  return FirebaseFirestore.instance
+      .collection('destinations')
+      .where('category', isEqualTo: category)
+      .orderBy('rating', descending: true)
+      .snapshots()
+      .map((snapshot) {
+        return snapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'name': data['name'] ?? '',
+            'image': (data['image'] != null && data['image'].toString().isNotEmpty)
+                ? data['image']
+                : 'https://via.placeholder.com/300',
+            'price': data['price'] ?? '',
+            'rating': (data['rating'] ?? 0.0).toDouble(),
+            'duration': data['duration'] ?? '',
+            'category': data['category'] ?? '',
+          };
+        }).toList();
+      });
+}
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _getUserProfile();
     _fetchPostedTrips();
-    // Firebase-аас нэвтэрсэн хэрэглэгчийн мэдээлэл авах
+    fetchRecommendedDestinations();
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       setState(() {
@@ -187,7 +237,7 @@ class _HomeDashboardState extends State<HomeDashboard>
     super.dispose();
   }
 
-  // Future<void> _fetchPostedTrips() async {
+  // Future<void> _xAfetchPostedTrips() async {
   //   final user = FirebaseAuth.instance.currentUser;
   //   if (user != null) {
   //     // 🛠️ get() үр дүнгээ хадгалж байна
@@ -349,6 +399,7 @@ class _HomeDashboardState extends State<HomeDashboard>
               _buildStickyHeader(),
               if (_currentTabIndex == 0) ...[
                 _buildHeroSection(),
+                _buildFilteredDestinationsSection(),
                 _buildRecommendedDestinationsSection(),
 
                 _buildRecentTripsSection(),
@@ -548,73 +599,143 @@ class _HomeDashboardState extends State<HomeDashboard>
       ),
     );
   }
+Widget _buildFilteredDestinationsSection() {
+  return SliverToBoxAdapter(
+    child: StreamBuilder<List<Map<String, dynamic>>>(
+      stream: fetchDestinationsByCategory('tr'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final destinations = snapshot.data;
+
+        if (destinations == null || destinations.isEmpty) {
+          return const Center(child: Text('No destinations found.'));
+        }
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: destinations.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 0.75,
+          ),
+          itemBuilder: (context, index) {
+            final destination = destinations[index];
+            return RecommendedDestinationWidget(
+              name: destination['name'],
+              imageUrl: destination['image'],
+              price: destination['price'],
+              rating: destination['rating'],
+              duration: destination['duration'],
+              category: destination['category'],
+              onTap: () => Navigator.pushNamed(context, '/home-detail'),
+            );
+          },
+        );
+      },
+    ),
+  );
+}
+
 
   Widget _buildRecommendedDestinationsSection() {
-    return SliverToBoxAdapter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: 3.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    "Recommended Destinations",
-                    style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.sp,
+  return SliverToBoxAdapter(
+    child: StreamBuilder<List<Map<String, dynamic>>>(
+      stream: fetchRecommendedDestinations(), // 👈 stream ашиглаж байна
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text("Error loading destinations"));
+        }
+
+        final destinations = snapshot.data ?? [];
+
+        if (destinations.isEmpty) {
+          return Center(child: Text("No destinations found"));
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 3.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.w),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(
+                      "Recommended Destinations",
+                      style:
+                          AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.sp,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
                   ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/home-detail'),
-                  child: Text(
-                    "View All",
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w500,
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/home-detail'),
+                    child: Text(
+                      "View All",
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 1.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 3.w,
-                mainAxisSpacing: 2.h,
-                childAspectRatio: 0.8,
+                ], 
               ),
-              itemCount: recommendedDestinations.length,
-              itemBuilder: (context, index) {
-                final destination = recommendedDestinations[index];
-                return RecommendedDestinationWidget(
-                  name: destination["name"] as String,
-                  imageUrl: destination["image"] as String,
-                  price: destination["price"] as String,
-                  rating: destination["rating"] as double,
-                  duration: destination["duration"] as String,
-                  category: destination["category"] as String,
-                  onTap: () => Navigator.pushNamed(context, '/home-detail'),
-                );
-              },
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            SizedBox(height: 1.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.w),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 3.w,
+                  mainAxisSpacing: 2.h,
+                  childAspectRatio: 0.8,
+                ),
+                itemCount: destinations.length,
+                itemBuilder: (context, index) {
+                  final destination = destinations[index];
+                  return RecommendedDestinationWidget(
+                    name: destination["name"] as String,
+                    imageUrl: destination["image"] as String,
+                    price: destination["price"] as String,
+                    rating: destination["rating"] as double,
+                    duration: destination["duration"] as String,
+                    category: destination["category"] as String,
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/home-detail'),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
 
   // Widget _buildTravelTipsSection() {
   //   return SliverToBoxAdapter(
