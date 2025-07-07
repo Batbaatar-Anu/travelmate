@@ -17,18 +17,37 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   String? temperature;
   String? condition;
   String? location;
+  Stream<Position>? _positionStream;
 
   @override
   void initState() {
     super.initState();
-    _loadWeather();
+    _startLocationUpdates();
   }
 
-  Future<void> _loadWeather() async {
+  void _startLocationUpdates() async {
     try {
-      final position = await _getCurrentLocation();
-      final weatherData =
-          await _fetchWeather(position.latitude, position.longitude);
+      final initialPosition = await _getCurrentLocation();
+      _loadWeatherAt(initialPosition);
+
+      _positionStream = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 100, // 100 метрт өөрчлөгдвөл дахин дуудна
+        ),
+      );
+
+      _positionStream!.listen((position) {
+        _loadWeatherAt(position);
+      });
+    } catch (e) {
+      print('Location init error: $e');
+    }
+  }
+
+  Future<void> _loadWeatherAt(Position position) async {
+    try {
+      final weatherData = await _fetchWeather(position.latitude, position.longitude);
       setState(() {
         temperature = "${weatherData['main']['temp'].round()}°C";
         condition = weatherData['weather'][0]['description'];
@@ -59,7 +78,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   }
 
   Future<Map<String, dynamic>> _fetchWeather(double lat, double lon) async {
-    const apiKey = '99fb4dd1334df80a3acd277f2c44345d'; // ← OpenWeatherMap API key тавина
+    const apiKey = '99fb4dd1334df80a3acd277f2c44345d';
     final url = Uri.parse(
       'https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&units=metric&appid=$apiKey&lang=mn',
     );

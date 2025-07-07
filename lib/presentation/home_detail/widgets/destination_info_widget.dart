@@ -9,7 +9,7 @@ class DestinationInfoWidget extends StatelessWidget {
   final double rating;
   final int reviewCount;
   final String description;
-  final List<String> highlights;
+  // final List<String> highlights;
 
   const DestinationInfoWidget({
     super.key,
@@ -18,7 +18,7 @@ class DestinationInfoWidget extends StatelessWidget {
     required this.rating,
     required this.reviewCount,
     required this.description,
-    required this.highlights,
+    // required this.highlights,
   });
 
   @override
@@ -116,44 +116,44 @@ class DestinationInfoWidget extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: 3.h),
+          // SizedBox(height: 3.h),
 
-          // Highlights
-          Text(
-            'Highlights',
-            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.lightTheme.colorScheme.onSurface,
-            ),
-          ),
-          SizedBox(height: 1.h),
-          ...highlights.map((highlight) => Padding(
-                padding: EdgeInsets.only(bottom: 1.h),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: EdgeInsets.only(top: 0.8.h, right: 2.w),
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: AppTheme.lightTheme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        highlight,
-                        style:
-                            AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                          color:
-                              AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
+          // // Highlights
+          // Text(
+          //   'Highlights',
+          //   style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+          //     fontWeight: FontWeight.bold,
+          //     color: AppTheme.lightTheme.colorScheme.onSurface,
+          //   ),
+          // ),
+          // SizedBox(height: 1.h),
+          // ...highlights.map((highlight) => Padding(
+          //       padding: EdgeInsets.only(bottom: 1.h),
+          //       child: Row(
+          //         crossAxisAlignment: CrossAxisAlignment.start,
+          //         children: [
+          //           Container(
+          //             margin: EdgeInsets.only(top: 0.8.h, right: 2.w),
+          //             width: 6,
+          //             height: 6,
+          //             decoration: BoxDecoration(
+          //               color: AppTheme.lightTheme.colorScheme.primary,
+          //               shape: BoxShape.circle,
+          //             ),
+          //           ),
+          //           Expanded(
+          //             child: Text(
+          //               highlight,
+          //               style:
+          //                   AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+          //                 color:
+          //                     AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+          //               ),
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //     )),
         ],
       ),
     );

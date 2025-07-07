@@ -165,55 +165,83 @@ class _HomeDashboardState extends State<HomeDashboard>
   //   }
   // ];
 
-List<Map<String, dynamic>> recommendedDestinations = [];
+  List<Map<String, dynamic>> recommendedDestinations = [];
 
-Stream<List<Map<String, dynamic>>> fetchRecommendedDestinations() {
-  return FirebaseFirestore.instance
-      .collection('destinations')
-      .orderBy('rating', descending: true)
-      .snapshots()
-      .map((snapshot) {
-        return snapshot.docs.map((doc) {
-          final data = doc.data();
-          return {
-            'id': doc.id,
-            'name': data['name'] ?? '',
-            'image': (data['image'] != null &&
-                      data['image'].toString().isNotEmpty)
-                ? data['image']
-                : 'https://via.placeholder.com/300',
-            'price': data['price'] ?? '',
-            'rating': (data['rating'] ?? 0.0).toDouble(),
-            'duration': data['duration'] ?? '',
-            'category': data['category'] ?? '',
-          };
-        }).toList();
-      });
-}
+  Stream<List<Map<String, dynamic>>> fetchRecommendedDestinations() {
+    return FirebaseFirestore.instance
+        .collection('destinations')
+        .orderBy('rating', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': data['name'] ?? '',
+          'image':
+              (data['image'] != null && data['image'].toString().isNotEmpty)
+                  ? data['image']
+                  : 'https://via.placeholder.com/300',
+          'price': data['price'] ?? '',
+          'rating': (data['rating'] ?? 0.0).toDouble(),
+          'duration': data['duration'] ?? '',
+          'category': data['category'] ?? '',
+        };
+      }).toList();
+    });
+  }
 
-Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) {
-  return FirebaseFirestore.instance
-      .collection('destinations')
-      .where('category', isEqualTo: category)
-      .orderBy('rating', descending: true)
-      .snapshots()
-      .map((snapshot) {
-        return snapshot.docs.map((doc) {
-          final data = doc.data();
-          return {
-            'id': doc.id,
-            'name': data['name'] ?? '',
-            'image': (data['image'] != null && data['image'].toString().isNotEmpty)
-                ? data['image']
-                : 'https://via.placeholder.com/300',
-            'price': data['price'] ?? '',
-            'rating': (data['rating'] ?? 0.0).toDouble(),
-            'duration': data['duration'] ?? '',
-            'category': data['category'] ?? '',
-          };
-        }).toList();
-      });
-}
+  Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(
+      String category) {
+    return FirebaseFirestore.instance
+        .collection('destinations')
+        .where('category', isEqualTo: category)
+        .orderBy('rating', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': data['name'] ?? '',
+          'image':
+              (data['image'] != null && data['image'].toString().isNotEmpty)
+                  ? data['image']
+                  : 'https://via.placeholder.com/300',
+          'price': data['price'] ?? '',
+          'rating': (data['rating'] ?? 0.0).toDouble(),
+          'duration': data['duration'] ?? '',
+          'category': data['category'] ?? '',
+        };
+      }).toList();
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> fetchSavedDestinations(String userId) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('saved_destinations')
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final destinationIds = snapshot.docs.map((doc) => doc.id).toList();
+
+      if (destinationIds.isEmpty) return [];
+
+      final futures = destinationIds.map((id) =>
+          FirebaseFirestore.instance.collection('destinations').doc(id).get());
+
+      final docs = await Future.wait(futures);
+
+      return docs
+          .where((doc) => doc.exists)
+          .map((doc) => {
+                'id': doc.id,
+                ...doc.data()!,
+              })
+          .toList();
+    });
+  }
 
   @override
   void initState() {
@@ -306,7 +334,7 @@ Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) 
     final snapshot = await FirebaseFirestore.instance
         .collection('trips')
         .orderBy('created_at', descending: true)
-        .limit(10) // Хамгийн сүүлийн 10 аялал
+        .limit(10)
         .get();
 
     setState(() {
@@ -353,17 +381,17 @@ Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) 
       _currentTabIndex = index;
     });
 
-    // Remove navigation from case 3
-    switch (index) {
-      case 0:
-        break;
-      case 1:
-        Navigator.pushNamed(context, '/home-detail');
-        break;
-      // case 2:
-      //   Navigator.pushNamed(context, '/push-notification-settings');
-      //   break;
-    }
+    // // Remove navigation from case 3
+    // switch (index) {
+    //   case 0:
+    //     break;
+    //   case 1:
+    //     Navigator.pushNamed(context, '/home-detail');
+    //     break;
+    //   // case 2:
+    //   //   Navigator.pushNamed(context, '/push-notification-settings');
+    //   //   break;
+    // }
   }
 
   Future<void> _getUserProfile() async {
@@ -401,12 +429,11 @@ Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) 
                 _buildHeroSection(),
                 _buildFilteredDestinationsSection(),
                 _buildRecommendedDestinationsSection(),
-
                 _buildRecentTripsSection(),
-                // _buildTravelTipsSection(),
-                // _buildUpcomingRemindersSection(),
-              ] else if (_currentTabIndex == 2)
-                buildProfileTab(context, _currentUser),
+              ],
+              if (_currentTabIndex == 1)
+                _buildSavedDestinationsSection(_currentUser?.uid),
+              if (_currentTabIndex == 2) buildProfileTab(context, _currentUser),
               SliverToBoxAdapter(child: SizedBox(height: 10.h)),
             ],
           ),
@@ -414,6 +441,81 @@ Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) 
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
       floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildSavedDestinationsSection(String? userId) {
+    if (userId == null) {
+      return SliverToBoxAdapter(
+        child: Center(child: Text('Please log in to see saved destinations')),
+      );
+    }
+
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.all(4.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Saved Destinations",
+              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: fetchSavedDestinations(userId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Text('Error loading saved destinations');
+                }
+
+                final savedDestinations = snapshot.data ?? [];
+
+                if (savedDestinations.isEmpty) {
+                  return Text('No saved destinations yet.');
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: savedDestinations.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 3.w,
+                    mainAxisSpacing: 2.h,
+                    childAspectRatio: 0.8,
+                  ),
+                  itemBuilder: (context, index) {
+                    final destination = savedDestinations[index];
+                    return RecommendedDestinationWidget(
+                      name: destination['name'] ?? '',
+                      imageUrl: destination['image'] ?? '',
+                      price: destination['price'] ?? '',
+                      rating: destination['rating']?.toDouble() ?? 0.0,
+                      duration: destination['duration'] ?? '',
+                      category: destination['category'] ?? '',
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/home-detail',
+                          arguments: destination['id'],
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -529,7 +631,7 @@ Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) 
           contentPadding:
               EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
         ),
-        onTap: () => Navigator.pushNamed(context, '/home-detail'),
+        onTap: () => Navigator.pushNamed(context, ''),
       ),
     );
   }
@@ -543,7 +645,7 @@ Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) 
           daysLeft: 15,
           imageUrl:
               "https://images.pexels.com/photos/2474690/pexels-photo-2474690.jpeg",
-          onTap: () => Navigator.pushNamed(context, '/home-detail'),
+          onTap: () => Navigator.pushNamed(context, ''),
         ),
       ),
     );
@@ -585,7 +687,11 @@ Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) 
                       rating: trip['rating'] ?? 0.0,
                       highlights: trip['highlights'] ?? [],
                       onTap: () {
-                        Navigator.pushNamed(context, '/home-detail');
+                        Navigator.pushNamed(
+                          context,
+                          '',
+                          arguments: trip['id'],
+                        );
                       },
                       onShare: () {},
                       onEdit: () {},
@@ -599,143 +705,146 @@ Stream<List<Map<String, dynamic>>> fetchDestinationsByCategory(String category) 
       ),
     );
   }
-Widget _buildFilteredDestinationsSection() {
-  return SliverToBoxAdapter(
-    child: StreamBuilder<List<Map<String, dynamic>>>(
-      stream: fetchDestinationsByCategory('tr'),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
 
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
+  Widget _buildFilteredDestinationsSection() {
+    return SliverToBoxAdapter(
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: fetchDestinationsByCategory('tr'),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final destinations = snapshot.data;
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
 
-        if (destinations == null || destinations.isEmpty) {
-          return const Center(child: Text('No destinations found.'));
-        }
+          final destinations = snapshot.data;
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: destinations.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 0.75,
-          ),
-          itemBuilder: (context, index) {
-            final destination = destinations[index];
-            return RecommendedDestinationWidget(
-              name: destination['name'],
-              imageUrl: destination['image'],
-              price: destination['price'],
-              rating: destination['rating'],
-              duration: destination['duration'],
-              category: destination['category'],
-              onTap: () => Navigator.pushNamed(context, '/home-detail'),
-            );
-          },
-        );
-      },
-    ),
-  );
-}
+          if (destinations == null || destinations.isEmpty) {
+            return const Center(child: Text('No destinations found.'));
+          }
 
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: destinations.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.75,
+            ),
+            itemBuilder: (context, index) {
+              final destination = destinations[index];
+              return RecommendedDestinationWidget(
+                name: destination['name'],
+                imageUrl: destination['image'],
+                price: destination['price'],
+                rating: destination['rating'],
+                duration: destination['duration'],
+                category: destination['category'],
+                onTap: () => Navigator.pushNamed(context, '/home-detail'),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildRecommendedDestinationsSection() {
-  return SliverToBoxAdapter(
-    child: StreamBuilder<List<Map<String, dynamic>>>(
-      stream: fetchRecommendedDestinations(), // 👈 stream ашиглаж байна
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
+    return SliverToBoxAdapter(
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: fetchRecommendedDestinations(), // 👈 stream ашиглаж байна
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
 
-        if (snapshot.hasError) {
-          return Center(child: Text("Error loading destinations"));
-        }
+          if (snapshot.hasError) {
+            return Center(child: Text("Error loading destinations"));
+          }
 
-        final destinations = snapshot.data ?? [];
+          final destinations = snapshot.data ?? [];
 
-        if (destinations.isEmpty) {
-          return Center(child: Text("No destinations found"));
-        }
+          if (destinations.isEmpty) {
+            return Center(child: Text("No destinations found"));
+          }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 3.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: Text(
-                      "Recommended Destinations",
-                      style:
-                          AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/home-detail'),
-                    child: Text(
-                      "View All",
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w500,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 3.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        "Recommended Destinations",
+                        style:
+                            AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.sp,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
-                  ),
-                ], 
-              ),
-            ),
-            SizedBox(height: 1.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 3.w,
-                  mainAxisSpacing: 2.h,
-                  childAspectRatio: 0.8,
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/home-detail'),
+                      child: Text(
+                        "View All",
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                itemCount: destinations.length,
-                itemBuilder: (context, index) {
-                  final destination = destinations[index];
-                  return RecommendedDestinationWidget(
-                    name: destination["name"] as String,
-                    imageUrl: destination["image"] as String,
-                    price: destination["price"] as String,
-                    rating: destination["rating"] as double,
-                    duration: destination["duration"] as String,
-                    category: destination["category"] as String,
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/home-detail'),
-                  );
-                },
               ),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
-
+              SizedBox(height: 1.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 3.w,
+                    mainAxisSpacing: 2.h,
+                    childAspectRatio: 0.8,
+                  ),
+                  itemCount: destinations.length,
+                  itemBuilder: (context, index) {
+                    final destination = destinations[index];
+                    return RecommendedDestinationWidget(
+                      name: destination["name"] as String,
+                      imageUrl: destination["image"] as String,
+                      price: destination["price"] as String,
+                      rating: destination["rating"] as double,
+                      duration: destination["duration"] as String,
+                      category: destination["category"] as String,
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/home-detail',
+                        arguments: destination[
+                            'id'], // 👈 ID-г arguments болгон дамжуулж байна
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
   // Widget _buildTravelTipsSection() {
   //   return SliverToBoxAdapter(
