@@ -218,30 +218,44 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
   Stream<List<Map<String, dynamic>>> fetchSavedDestinations(String userId) {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('saved_destinations')
-        .snapshots()
-        .asyncMap((snapshot) async {
-      final destinationIds = snapshot.docs.map((doc) => doc.id).toList();
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('saved_destinations')
+      .snapshots()
+      .asyncMap((snapshot) async {
+    final destinationIds = snapshot.docs.map((doc) => doc.id).toList();
 
-      if (destinationIds.isEmpty) return [];
+    if (destinationIds.isEmpty) return [];
 
-      final futures = destinationIds.map((id) =>
-          FirebaseFirestore.instance.collection('destinations').doc(id).get());
+    final futures = destinationIds.map(
+      (id) => FirebaseFirestore.instance.collection('destinations').doc(id).get(),
+    );
 
-      final docs = await Future.wait(futures);
+    final docs = await Future.wait(futures);
 
-      return docs
-          .where((doc) => doc.exists)
-          .map((doc) => {
-                'id': doc.id,
-                ...doc.data()!,
-              })
-          .toList();
-    });
-  }
+    return docs
+        .where((doc) => doc.exists)
+        .map((doc) {
+          final data = doc.data()!;
+          return {
+            'id': doc.id, // ✅ зөв: зөвхөн doc.id-г ашиглаж байна
+            'name': data['name'],
+            'image': data['image'],
+            'price': data['price'],
+            'rating': data['rating'],
+            'duration': data['duration'],
+            'category': data['category'],
+            'subtitle': data['subtitle'],
+            'description': data['description'],
+            'photos': data['photos'],
+            // ⚠️ Хэрвээ data['id'] байсан ч, энд оруулахгүй
+          };
+        })
+        .toList();
+  });
+}
+
 
   @override
   void initState() {
@@ -652,59 +666,57 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
   Widget _buildRecentTripsSection() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🏷 Section title
-            Text(
-              "Recent Trips",
-              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 12.sp,
-              ),
+  return SliverToBoxAdapter(
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Recent Trips",
+            style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 12.sp,
             ),
-            SizedBox(height: 2.h),
+          ),
+          SizedBox(height: 2.h),
 
-            // 🧳 Recent trips list
-            SizedBox(
-              height: postedTrips.length * 22.h, // or use shrinkWrap list
-              child: ListView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: postedTrips.length,
-                itemBuilder: (context, index) {
-                  final trip = postedTrips[index];
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 2.h),
-                    child: RecentTripCardWidget(
-                      title: trip['title'] ?? 'Untitled',
-                      destination: trip['destination'] ?? '',
-                      imageUrl: trip['image'] ?? '',
-                      date: trip['date'] ?? '',
-                      status: trip['status'] ?? 'Upcoming',
-                      rating: trip['rating'] ?? 0.0,
-                      highlights: trip['highlights'] ?? [],
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '',
-                          arguments: trip['id'],
-                        );
-                      },
-                      onShare: () {},
-                      onEdit: () {},
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+          // ✅ Auto height list (shrinkWrap)
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: postedTrips.length,
+            itemBuilder: (context, index) {
+              final trip = postedTrips[index];
+              return Padding(
+                padding: EdgeInsets.only(bottom: 2.h),
+                child: RecentTripCardWidget(
+                  title: trip['title'] ?? 'Untitled',
+                  destination: trip['destination'] ?? '',
+                  imageUrl: trip['image'] ?? '',
+                  date: trip['date'] ?? '',
+                  status: trip['status'] ?? 'Upcoming',
+                  rating: trip['rating'] ?? 0.0,
+                  highlights: trip['highlights'] ?? [],
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '',
+                      arguments: trip['id'],
+                    );
+                  },
+                  onShare: () {},
+                  onEdit: () {},
+                ),
+              );
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildFilteredDestinationsSection() {
     return SliverToBoxAdapter(
