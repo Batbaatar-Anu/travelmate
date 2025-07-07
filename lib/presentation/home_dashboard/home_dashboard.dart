@@ -167,6 +167,23 @@ class _HomeDashboardState extends State<HomeDashboard>
   // ];
 
   List<Map<String, dynamic>> recommendedDestinations = [];
+  Future<void> markAllNotificationsAsRead(String userId) async {
+    final userNotificationsRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('notifications');
+
+    final unreadSnapshot =
+        await userNotificationsRef.where('isRead', isEqualTo: false).get();
+
+    final batch = FirebaseFirestore.instance.batch();
+
+    for (final doc in unreadSnapshot.docs) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+
+    await batch.commit();
+  }
 
   Stream<List<Map<String, dynamic>>> fetchRecommendedDestinations() {
     return FirebaseFirestore.instance
@@ -407,6 +424,26 @@ class _HomeDashboardState extends State<HomeDashboard>
     }
   }
 
+  Future<void> sendNotificationToAllUsers(String title, String message) async {
+    final usersSnapshot =
+        await FirebaseFirestore.instance.collection('user_profiles').get();
+
+    for (final userDoc in usersSnapshot.docs) {
+      final userId = userDoc.id;
+
+      await FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(userId)
+          .collection('notifications')
+          .add({
+        'title': title,
+        'message': message,
+        'isRead': false,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
   Future<void> _handleRefresh() async {
     setState(() {
       _isRefreshing = true;
@@ -565,6 +602,80 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
+// 🔁 StreamBuilder хэвээр байлгана
+  Widget _buildNotificationIcon() {
+    if (_currentUser == null) return const SizedBox.shrink();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(_currentUser!.uid)
+          .collection('notifications')
+          .where('isRead', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data?.docs.length ?? 0;
+
+        return GestureDetector(
+          onTap: () async {
+            await markAllNotificationsAsRead(_currentUser!.uid);
+            Navigator.pushNamed(context, '/push-notification-settings');
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: EdgeInsets.all(2.w),
+                decoration: BoxDecoration(
+                  color: AppTheme.lightTheme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: CustomIconWidget(
+                  iconName: 'notifications',
+                  color: AppTheme.lightTheme.primaryColor,
+                  size: 24,
+                ),
+              ),
+
+              // 🔴 Badge with count
+              if (unreadCount > 0)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints:
+                        const BoxConstraints(minWidth: 22, minHeight: 22),
+                    child: Center(
+                      child: Text(
+                        unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildStickyHeader() {
     final currentUser = FirebaseAuthService().currentUser;
     final displayName = currentUser?.displayName ?? 'Traveler';
@@ -611,33 +722,40 @@ class _HomeDashboardState extends State<HomeDashboard>
                       ],
                     ),
                   ),
+                  // Row(
+                  //   children: [
+                  //     WeatherWidget(),
+                  //     SizedBox(width: 2.w),
+                  //     GestureDetector(
+                  //       onTap: () => Navigator.pushNamed(
+                  //           context, '/push-notification-settings'),
+                  //       child: Container(
+                  //         padding: EdgeInsets.all(2.w),
+                  //         decoration: BoxDecoration(
+                  //           color: AppTheme.lightTheme.colorScheme.surface,
+                  //           borderRadius: BorderRadius.circular(12),
+                  //           boxShadow: [
+                  //             BoxShadow(
+                  //               color: Colors.black.withValues(alpha: 0.05),
+                  //               blurRadius: 8,
+                  //               offset: const Offset(0, 2),
+                  //             ),
+                  //           ],
+                  //         ),
+                  //         child: CustomIconWidget(
+                  //           iconName: 'notifications',
+                  //           color: AppTheme.lightTheme.primaryColor,
+                  //           size: 24,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                   Row(
                     children: [
                       WeatherWidget(),
                       SizedBox(width: 2.w),
-                      GestureDetector(
-                        onTap: () => Navigator.pushNamed(
-                            context, '/push-notification-settings'),
-                        child: Container(
-                          padding: EdgeInsets.all(2.w),
-                          decoration: BoxDecoration(
-                            color: AppTheme.lightTheme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: CustomIconWidget(
-                            iconName: 'notifications',
-                            color: AppTheme.lightTheme.primaryColor,
-                            size: 24,
-                          ),
-                        ),
-                      ),
+                      _buildNotificationIcon(), // → badge бүхий icon энд
                     ],
                   ),
                 ],
@@ -845,7 +963,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                     ),
                     TextButton(
                       onPressed: () =>
-                          Navigator.pushNamed(context, '/home-detail'),
+                          Navigator.pushNamed(context, '/all-destinations'),
                       child: Text(
                         "View All",
                         style: TextStyle(

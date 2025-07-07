@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:travelmate/presentation/home_dashboard/widgets/all_destinations.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/newtrip.dart';
 import '../presentation/onboarding_flow/onboarding_flow.dart';
 import '../presentation/user_login/user_login.dart';
@@ -17,6 +18,7 @@ class AppRoutes {
   static const String homeDashboard = '/home-dashboard';
   static const String homeDetail = '/home-detail';
   static const String newTrip = '/new-trip'; 
+  static const String allDestinations = '/all-destinations';
 
   static Map<String, WidgetBuilder> routes = {
     initial: (context) => const OnboardingFlow(),
@@ -27,5 +29,7 @@ class AppRoutes {
     homeDashboard: (context) => const HomeDashboard(),
     homeDetail: (context) => const HomeDetail(),
     newTrip: (context) => const NewTripScreen(),
+    allDestinations: (context) => const AllDestinationsScreen(),
+
   };
 }
