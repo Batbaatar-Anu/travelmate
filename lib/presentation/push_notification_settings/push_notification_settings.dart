@@ -1,7 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sizer/sizer.dart';
 import 'package:travelmate/presentation/push_notification_settings/notificationStorage.dart';
+import 'package:travelmate/firebase_msg.dart'; // 👈 FCM service import
 
 class ReceivedNotification {
   final String title;
@@ -29,15 +32,48 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void initState() {
     super.initState();
     _loadNotifications();
+
+    // ✅ Listen to foreground notifications
+    FirebaseMessagingService.instance.onNotificationReceived = (title, body) {
+      setState(() {
+        receivedNotifications.insert(
+          0,
+          ReceivedNotification(
+            title: title,
+            body: body,
+            timestamp: DateTime.now(),
+          ),
+        );
+      });
+    };
   }
 
   // Load notifications from local storage
-  void _loadNotifications() async {
-    final notifications = await NotificationStorage.load();
-    setState(() {
-      receivedNotifications = notifications;
-    });
-  }
+void _loadNotifications() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final snapshot = await FirebaseFirestore.instance
+      .collection('user_profiles') // 🛠️ энэ мөрийг users → user_profiles болго
+      .doc(user.uid)
+      .collection('notifications')
+      .orderBy('timestamp', descending: true)
+      .get();
+
+  final notifications = snapshot.docs.map((doc) {
+    final data = doc.data();
+    return ReceivedNotification(
+      title: data['title'] ?? '',
+      body: data['body'] ?? '',
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }).toList();
+
+  setState(() {
+    receivedNotifications = notifications;
+  });
+}
+
 
   String formatTime(DateTime dateTime) {
     final now = DateTime.now();
@@ -100,7 +136,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   ),
                                   children: [
                                     TextSpan(
-                                      text: "  • ${formatTime(notif.timestamp)}",
+                                      text:
+                                          "  • ${formatTime(notif.timestamp)}",
                                       style: TextStyle(
                                         fontWeight: FontWeight.normal,
                                         color: Colors.grey,

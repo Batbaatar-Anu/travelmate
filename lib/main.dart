@@ -11,7 +11,6 @@ import 'package:travelmate/firebase_options.dart';
 
 import 'core/app_export.dart';
 import 'widgets/custom_error_widget.dart';
-import 'routes/app_routes.dart'; // Та routes файлаа ингэж импортолж байгаарай
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

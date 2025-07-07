@@ -169,7 +169,7 @@ class _HomeDashboardState extends State<HomeDashboard>
   List<Map<String, dynamic>> recommendedDestinations = [];
   Future<void> markAllNotificationsAsRead(String userId) async {
     final userNotificationsRef = FirebaseFirestore.instance
-        .collection('users')
+        .collection('user_profiles')
         .doc(userId)
         .collection('notifications');
 
@@ -603,78 +603,90 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
 // 🔁 StreamBuilder хэвээр байлгана
-  Widget _buildNotificationIcon() {
-    if (_currentUser == null) return const SizedBox.shrink();
+Widget _buildNotificationIcon() {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return const SizedBox.shrink();
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('user_profiles')
-          .doc(_currentUser!.uid)
-          .collection('notifications')
-          .where('isRead', isEqualTo: false)
-          .snapshots(),
-      builder: (context, snapshot) {
-        final unreadCount = snapshot.data?.docs.length ?? 0;
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('user_profiles') // ✅ Зөв collection path
+        .doc(user.uid)
+        .collection('notifications')
+        .where('isRead', isEqualTo: false)
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return _buildNotificationBaseIcon(); // loading үед badge байхгүй icon
+      }
 
-        return GestureDetector(
-          onTap: () async {
-            await markAllNotificationsAsRead(_currentUser!.uid);
+      final unreadCount = snapshot.data?.docs.length ?? 0;
+
+      return GestureDetector(
+        onTap: () async {
+          // ✅ Mark all as read
+          await markAllNotificationsAsRead(user.uid);
+
+          // ✅ Navigate to notification detail screen
+          if (context.mounted) {
             Navigator.pushNamed(context, '/push-notification-settings');
-          },
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                padding: EdgeInsets.all(2.w),
-                decoration: BoxDecoration(
-                  color: AppTheme.lightTheme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: CustomIconWidget(
-                  iconName: 'notifications',
-                  color: AppTheme.lightTheme.primaryColor,
-                  size: 24,
-                ),
-              ),
-
-              // 🔴 Badge with count
-              if (unreadCount > 0)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints:
-                        const BoxConstraints(minWidth: 22, minHeight: 22),
-                    child: Center(
-                      child: Text(
-                        unreadCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+          }
+        },
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            _buildNotificationBaseIcon(),
+            if (unreadCount > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                  child: Center(
+                    child: Text(
+                      unreadCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildNotificationBaseIcon() {
+  return Container(
+    padding: EdgeInsets.all(2.w),
+    decoration: BoxDecoration(
+      color: AppTheme.lightTheme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withAlpha(15),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: CustomIconWidget(
+      iconName: 'notifications',
+      color: AppTheme.lightTheme.primaryColor,
+      size: 24,
+    ),
+  );
+}
+
 
   Widget _buildStickyHeader() {
     final currentUser = FirebaseAuthService().currentUser;
