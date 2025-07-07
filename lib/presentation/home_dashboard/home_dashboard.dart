@@ -28,6 +28,7 @@ class _HomeDashboardState extends State<HomeDashboard>
   final ScrollController _scrollController = ScrollController();
   User? _currentUser;
   Map<String, dynamic>? _currentUserProfile;
+  Set<String> savedDestinationIds = {};
 
   // Mock data for travel dashboard
   List<Map<String, dynamic>> postedTrips = [];
@@ -218,44 +219,41 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
   Stream<List<Map<String, dynamic>>> fetchSavedDestinations(String userId) {
-  return FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .collection('saved_destinations')
-      .snapshots()
-      .asyncMap((snapshot) async {
-    final destinationIds = snapshot.docs.map((doc) => doc.id).toList();
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('saved_destinations')
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final destinationIds = snapshot.docs.map((doc) => doc.id).toList();
 
-    if (destinationIds.isEmpty) return [];
+      if (destinationIds.isEmpty) return [];
 
-    final futures = destinationIds.map(
-      (id) => FirebaseFirestore.instance.collection('destinations').doc(id).get(),
-    );
+      final futures = destinationIds.map(
+        (id) =>
+            FirebaseFirestore.instance.collection('destinations').doc(id).get(),
+      );
 
-    final docs = await Future.wait(futures);
+      final docs = await Future.wait(futures);
 
-    return docs
-        .where((doc) => doc.exists)
-        .map((doc) {
-          final data = doc.data()!;
-          return {
-            'id': doc.id, // ✅ зөв: зөвхөн doc.id-г ашиглаж байна
-            'name': data['name'],
-            'image': data['image'],
-            'price': data['price'],
-            'rating': data['rating'],
-            'duration': data['duration'],
-            'category': data['category'],
-            'subtitle': data['subtitle'],
-            'description': data['description'],
-            'photos': data['photos'],
-            // ⚠️ Хэрвээ data['id'] байсан ч, энд оруулахгүй
-          };
-        })
-        .toList();
-  });
-}
-
+      return docs.where((doc) => doc.exists).map((doc) {
+        final data = doc.data()!;
+        return {
+          'id': doc.id, // ✅ зөв: зөвхөн doc.id-г ашиглаж байна
+          'name': data['name'],
+          'image': data['image'],
+          'price': data['price'],
+          'rating': data['rating'],
+          'duration': data['duration'],
+          'category': data['category'],
+          'subtitle': data['subtitle'],
+          'description': data['description'],
+          'photos': data['photos'],
+          // ⚠️ Хэрвээ data['id'] байсан ч, энд оруулахгүй
+        };
+      }).toList();
+    });
+  }
 
   @override
   void initState() {
@@ -263,11 +261,23 @@ class _HomeDashboardState extends State<HomeDashboard>
     _tabController = TabController(length: 4, vsync: this);
     _getUserProfile();
     _fetchPostedTrips();
-    fetchRecommendedDestinations();
+
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       setState(() {
         _currentUser = user;
+      });
+
+      // 👇 Listen to saved destinations
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('saved_destinations')
+          .snapshots()
+          .listen((snapshot) {
+        setState(() {
+          savedDestinationIds = snapshot.docs.map((doc) => doc.id).toSet();
+        });
       });
     }
   }
@@ -375,6 +385,26 @@ class _HomeDashboardState extends State<HomeDashboard>
         };
       }).toList();
     });
+  }
+
+  void _toggleSaveDestination(String destinationId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved_destinations')
+        .doc(destinationId);
+
+    if (savedDestinationIds.contains(destinationId)) {
+      await docRef.delete();
+    } else {
+      await docRef.set({
+        'destination_id': destinationId,
+        'saved_at': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   Future<void> _handleRefresh() async {
@@ -509,19 +539,21 @@ class _HomeDashboardState extends State<HomeDashboard>
                   itemBuilder: (context, index) {
                     final destination = savedDestinations[index];
                     return RecommendedDestinationWidget(
-                      name: destination['name'] ?? '',
-                      imageUrl: destination['image'] ?? '',
-                      price: destination['price'] ?? '',
-                      rating: destination['rating']?.toDouble() ?? 0.0,
-                      duration: destination['duration'] ?? '',
-                      category: destination['category'] ?? '',
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/home-detail',
-                          arguments: destination['id'],
-                        );
-                      },
+                      name: destination["name"] as String,
+                      imageUrl: destination["image"] as String,
+                      price: destination["price"] as String,
+                      rating: destination["rating"] as double,
+                      duration: destination["duration"] as String,
+                      category: destination["category"] as String,
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/home-detail',
+                        arguments: destination['id'],
+                      ),
+                      isSaved:
+                          savedDestinationIds.contains(destination['id']), // ✅
+                      onFavoriteToggle: () =>
+                          _toggleSaveDestination(destination['id']), // ✅
                     );
                   },
                 );
@@ -666,57 +698,56 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
   Widget _buildRecentTripsSection() {
-  return SliverToBoxAdapter(
-    child: Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Recent Trips",
-            style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.sp,
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Recent Trips",
+              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
             ),
-          ),
-          SizedBox(height: 2.h),
+            SizedBox(height: 2.h),
 
-          // ✅ Auto height list (shrinkWrap)
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: postedTrips.length,
-            itemBuilder: (context, index) {
-              final trip = postedTrips[index];
-              return Padding(
-                padding: EdgeInsets.only(bottom: 2.h),
-                child: RecentTripCardWidget(
-                  title: trip['title'] ?? 'Untitled',
-                  destination: trip['destination'] ?? '',
-                  imageUrl: trip['image'] ?? '',
-                  date: trip['date'] ?? '',
-                  status: trip['status'] ?? 'Upcoming',
-                  rating: trip['rating'] ?? 0.0,
-                  highlights: trip['highlights'] ?? [],
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '',
-                      arguments: trip['id'],
-                    );
-                  },
-                  onShare: () {},
-                  onEdit: () {},
-                ),
-              );
-            },
-          ),
-        ],
+            // ✅ Auto height list (shrinkWrap)
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: postedTrips.length,
+              itemBuilder: (context, index) {
+                final trip = postedTrips[index];
+                return Padding(
+                  padding: EdgeInsets.only(bottom: 2.h),
+                  child: RecentTripCardWidget(
+                    title: trip['title'] ?? 'Untitled',
+                    destination: trip['destination'] ?? '',
+                    imageUrl: trip['image'] ?? '',
+                    date: trip['date'] ?? '',
+                    status: trip['status'] ?? 'Upcoming',
+                    rating: trip['rating'] ?? 0.0,
+                    highlights: trip['highlights'] ?? [],
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '',
+                        arguments: trip['id'],
+                      );
+                    },
+                    onShare: () {},
+                    onEdit: () {},
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildFilteredDestinationsSection() {
     return SliverToBoxAdapter(
@@ -750,13 +781,20 @@ class _HomeDashboardState extends State<HomeDashboard>
             itemBuilder: (context, index) {
               final destination = destinations[index];
               return RecommendedDestinationWidget(
-                name: destination['name'],
-                imageUrl: destination['image'],
-                price: destination['price'],
-                rating: destination['rating'],
-                duration: destination['duration'],
-                category: destination['category'],
-                onTap: () => Navigator.pushNamed(context, '/home-detail'),
+                name: destination["name"] as String,
+                imageUrl: destination["image"] as String,
+                price: destination["price"] as String,
+                rating: destination["rating"] as double,
+                duration: destination["duration"] as String,
+                category: destination["category"] as String,
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  '/home-detail',
+                  arguments: destination['id'],
+                ),
+                isSaved: savedDestinationIds.contains(destination['id']), // ✅
+                onFavoriteToggle: () =>
+                    _toggleSaveDestination(destination['id']), // ✅
               );
             },
           );
@@ -844,9 +882,12 @@ class _HomeDashboardState extends State<HomeDashboard>
                       onTap: () => Navigator.pushNamed(
                         context,
                         '/home-detail',
-                        arguments: destination[
-                            'id'], // 👈 ID-г arguments болгон дамжуулж байна
+                        arguments: destination['id'],
                       ),
+                      isSaved:
+                          savedDestinationIds.contains(destination['id']), // ✅
+                      onFavoriteToggle: () =>
+                          _toggleSaveDestination(destination['id']), // ✅
                     );
                   },
                 ),

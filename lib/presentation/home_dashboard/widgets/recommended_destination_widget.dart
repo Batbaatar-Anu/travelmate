@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-
 import '../../../core/app_export.dart';
 
 class RecommendedDestinationWidget extends StatelessWidget {
@@ -11,6 +10,8 @@ class RecommendedDestinationWidget extends StatelessWidget {
   final String duration;
   final String category;
   final VoidCallback onTap;
+  final bool isSaved; // 🔁 Whether it's saved or not
+  final VoidCallback onFavoriteToggle; // 🔁 Tap action for heart icon
 
   const RecommendedDestinationWidget({
     super.key,
@@ -21,6 +22,8 @@ class RecommendedDestinationWidget extends StatelessWidget {
     required this.duration,
     required this.category,
     required this.onTap,
+    required this.isSaved,
+    required this.onFavoriteToggle,
   });
 
   @override
@@ -33,7 +36,7 @@ class RecommendedDestinationWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: Colors.black.withOpacity(0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -56,6 +59,7 @@ class RecommendedDestinationWidget extends StatelessWidget {
       width: double.infinity,
       child: Stack(
         children: [
+          // 🔳 Destination image
           ClipRRect(
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(16),
@@ -68,6 +72,8 @@ class RecommendedDestinationWidget extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
+
+          // 🏷 Category label
           Positioned(
             top: 1.h,
             left: 2.w,
@@ -86,19 +92,26 @@ class RecommendedDestinationWidget extends StatelessWidget {
               ),
             ),
           ),
+
+          // ❤️ Favorite icon
           Positioned(
             top: 1.h,
             right: 2.w,
-            child: Container(
-              padding: EdgeInsets.all(1.w),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: CustomIconWidget(
-                iconName: 'favorite_border',
-                color: AppTheme.lightTheme.primaryColor,
-                size: 20,
+            child: GestureDetector(
+              onTap: onFavoriteToggle,
+              child: Container(
+                padding: EdgeInsets.all(1.w),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: CustomIconWidget(
+                  iconName: isSaved ? 'favorite_border' : 'favorite_border',
+                  color: isSaved
+                      ? Colors.red
+                      : AppTheme.lightTheme.primaryColor,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -111,11 +124,12 @@ class RecommendedDestinationWidget extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.all(3.w),
       child: SizedBox(
-        height: 10.h, // 👈 Өндөрийг тогтоож өгнө
+        height: 10.h,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            // 📍 Destination Name
             Text(
               name,
               style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
@@ -124,6 +138,8 @@ class RecommendedDestinationWidget extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+
+            // ⭐ Rating & duration
             Row(
               children: [
                 CustomIconWidget(
@@ -133,7 +149,7 @@ class RecommendedDestinationWidget extends StatelessWidget {
                 ),
                 SizedBox(width: 1.w),
                 Text(
-                  rating.toString(),
+                  rating.toStringAsFixed(1),
                   style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
@@ -147,6 +163,8 @@ class RecommendedDestinationWidget extends StatelessWidget {
                 ),
               ],
             ),
+
+            // 💰 Price + Book button
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

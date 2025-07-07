@@ -47,14 +47,17 @@ class _WeatherWidgetState extends State<WeatherWidget> {
 
   Future<void> _loadWeatherAt(Position position) async {
     try {
-      final weatherData = await _fetchWeather(position.latitude, position.longitude);
+      final weatherData =
+          await _fetchWeather(position.latitude, position.longitude);
+      print("✅ Weather data: $weatherData"); // ← check in debug console
+
       setState(() {
         temperature = "${weatherData['main']['temp'].round()}°C";
         condition = weatherData['weather'][0]['description'];
         location = weatherData['name'];
       });
     } catch (e) {
-      print("Error loading weather: $e");
+      print("❌ Error loading weather: $e");
     }
   }
 
@@ -72,9 +75,19 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       }
     }
 
-    return await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are permanently denied.');
+    }
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (_) {
+      final lastPosition = await Geolocator.getLastKnownPosition();
+      if (lastPosition != null) return lastPosition;
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> _fetchWeather(double lat, double lon) async {
