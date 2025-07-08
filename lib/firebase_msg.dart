@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -5,13 +7,15 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:travelmate/presentation/push_notification_settings/notificationStorage.dart';
 
 class FirebaseMessagingService {
-  static final FirebaseMessagingService instance = FirebaseMessagingService._internal();
+  static final FirebaseMessagingService instance =
+      FirebaseMessagingService._internal();
   factory FirebaseMessagingService() => instance;
   FirebaseMessagingService._internal();
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
-
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+  final user = FirebaseAuth.instance.currentUser;
   // Callback function for received notification
   Function(String title, String body)? onNotificationReceived;
 
@@ -24,18 +28,38 @@ class FirebaseMessagingService {
     await _messaging.subscribeToTopic('all');
 
     // Handle message when the app is in the foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       final notification = message.notification;
+      final user = FirebaseAuth.instance.currentUser;
+
       if (notification != null) {
+        // Show local notification
         _showLocalNotification(notification);
-        // Store the notification data
+
+        // 🔴 Store to local storage (optional)
         NotificationStorage.save(
-          notification.title ?? 'No title', 
+          notification.title ?? 'No title',
           notification.body ?? 'No message',
         );
-        // Call the onNotificationReceived callback
+
+        // 🔵 🔥 Store to Firestore: user_profiles/{uid}/notifications
+        if (user != null) {
+          await FirebaseFirestore.instance
+              .collection('user_profiles')
+              .doc(user.uid)
+              .collection('notifications')
+              .add({
+            'title': notification.title ?? '',
+            'message': notification.body ?? '',
+            'timestamp': FieldValue.serverTimestamp(),
+            'isRead': false,
+          });
+        }
+
+        // Call custom callback
         if (onNotificationReceived != null) {
-          onNotificationReceived!(notification.title ?? 'No title', notification.body ?? 'No message');
+          onNotificationReceived!(notification.title ?? 'No title',
+              notification.body ?? 'No message');
         }
       }
     });
@@ -89,10 +113,26 @@ class FirebaseMessagingService {
   // Firebase background message handler to store the notifications
   static Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp();
-    // Store the notification in the local storage
+
+    // Store locally
     NotificationStorage.save(
-      message.notification?.title ?? 'No Title', 
+      message.notification?.title ?? 'No Title',
       message.notification?.body ?? 'No Body',
     );
+
+    // Get uid from custom data payload (NOT from FirebaseAuth)
+    final userId = message.data['userId'];
+    if (userId != null && message.notification != null) {
+      await FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(userId)
+          .collection('notifications')
+          .add({
+        'title': message.notification!.title ?? '',
+        'message': message.notification!.body ?? '',
+        'timestamp': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    }
   }
 }

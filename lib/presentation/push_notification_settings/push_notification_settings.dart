@@ -34,18 +34,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
     _loadNotifications();
 
     // ✅ Listen to foreground notifications
-    FirebaseMessagingService.instance.onNotificationReceived = (title, body) {
-      setState(() {
-        receivedNotifications.insert(
-          0,
-          ReceivedNotification(
-            title: title,
-            body: body,
-            timestamp: DateTime.now(),
-          ),
-        );
-      });
-    };
+ FirebaseMessagingService.instance.onNotificationReceived = (title, body) {
+  if (!mounted) return;
+  setState(() {
+    receivedNotifications.insert(
+      0,
+      ReceivedNotification(
+        title: title,
+        body: body,
+        timestamp: DateTime.now(),
+      ),
+    );
+  });
+};
+
   }
 
   // Load notifications from local storage
