@@ -325,23 +325,30 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
           .get();
 
       if (doc.exists) {
-        setState(() {
-          destinationData = doc.data();
-          _isLoading = false;
-        });
+        if (mounted) {
+          // Check if widget is still mounted
+          setState(() {
+            destinationData = doc.data();
+            _isLoading = false;
+          });
+        }
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Destination not found')),
         );
       }
     } catch (e) {
       debugPrint('Error fetching destination: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -399,7 +406,6 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
     _fabAnimationController.dispose();
     super.dispose();
   }
-
 
   void _checkIfSaved() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -592,7 +598,6 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
                     activities: (destinationData!["activities"] as List)
                         .cast<Map<String, dynamic>>(),
                   ),
-
 
                 // Reviews Section
                 ReviewsSectionWidget(destinationId: _destinationId!),
