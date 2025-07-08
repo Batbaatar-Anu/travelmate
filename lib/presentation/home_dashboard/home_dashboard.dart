@@ -503,21 +503,25 @@ class _HomeDashboardState extends State<HomeDashboard>
           onRefresh: _handleRefresh,
           color: AppTheme.lightTheme.primaryColor,
           child: CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              _buildStickyHeader(),
-              if (_currentTabIndex == 0) ...[
-                _buildHeroSection(),
-                _buildFilteredDestinationsSection(),
-                _buildRecommendedDestinationsSection(),
-                _buildRecentTripsSection(),
-              ],
-              if (_currentTabIndex == 1)
-                _buildSavedDestinationsSection(_currentUser?.uid),
-              if (_currentTabIndex == 2) buildProfileTab(context, _currentUser),
-              SliverToBoxAdapter(child: SizedBox(height: 10.h)),
-            ],
-          ),
+  controller: _scrollController,
+  slivers: [
+    if (_currentTabIndex != 2) _buildStickyHeader(),
+
+    if (_currentTabIndex == 0) ...[
+      _buildHeroSection(),
+      _buildFilteredDestinationsSection(),
+      _buildRecommendedDestinationsSection(),
+      _buildRecentTripsSection(),
+    ],
+    if (_currentTabIndex == 1)
+      _buildSavedDestinationsSection(_currentUser?.uid),
+    if (_currentTabIndex == 2)
+      buildProfileTab(context, _currentUser),
+
+    SliverToBoxAdapter(child: SizedBox(height: 10.h)),
+  ],
+),
+
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),

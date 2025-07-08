@@ -1,121 +1,139 @@
-import 'package:flutter/material.dart';
-import 'package:sizer/sizer.dart';
-import '../../../core/app_export.dart';
+// import 'package:flutter/material.dart';
+// import 'package:sizer/sizer.dart';
+// import '../../../core/app_export.dart';
 
-class ProfileTabWidget extends StatelessWidget {
-  final String userName;
-  final String email;
-  final Function() onLogout;
-  final List<Map<String, String>> trips; // {title, destination, imageUrl}
+// class ProfileTabWidget extends StatelessWidget {
+//   final String userName;
+//   final String email;
+//   final Function() onLogout;
+//   final List<Map<String, String>> trips;
 
-  const ProfileTabWidget({
-    super.key,
-    required this.userName,
-    required this.email,
-    required this.onLogout,
-    required this.trips,
-  });
+//   const ProfileTabWidget({
+//     super.key,
+//     required this.userName,
+//     required this.email,
+//     required this.onLogout,
+//     required this.trips,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(4.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Profile Header
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 4,
-            child: Padding(
-              padding: EdgeInsets.all(4.w),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppTheme.lightTheme.primaryColor,
-                    child: Icon(Icons.person, color: Colors.white, size: 32),
-                  ),
-                  SizedBox(width: 4.w),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        userName,
-                        style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      SizedBox(height: 0.5.h),
-                      Text(
-                        email,
-                        style: AppTheme.lightTheme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+//   @override
+//   Widget build(BuildContext context) {
+//     return Stack(
+//       children: [
+//         SingleChildScrollView(
+//           padding: EdgeInsets.only(bottom: 8.h),
+//           child: Column(
+//             crossAxisAlignment: CrossAxisAlignment.center,
+//             children: [
+//               // --- Profile Header ---
+//               Container(
+//                 width: double.infinity,
+//                 decoration: BoxDecoration(
+//                   gradient: LinearGradient(
+//                     colors: [Colors.purple.shade100, Colors.pink.shade50],
+//                     begin: Alignment.topCenter,
+//                     end: Alignment.bottomCenter,
+//                   ),
+//                   borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+//                 ),
+//                 padding: EdgeInsets.symmetric(vertical: 4.h),
+//                 child: Column(
+//                   children: [
+//                     CircleAvatar(
+//                       radius: 40,
+//                       backgroundImage: AssetImage("assets/images/default_profile.png"),
+//                       backgroundColor: Colors.white,
+//                     ),
+//                     SizedBox(height: 1.h),
+//                     Text(
+//                       userName,
+//                       style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+//                     ),
+//                     Text(
+//                       email,
+//                       style: TextStyle(color: Colors.grey, fontSize: 11.sp),
+//                     ),
+//                     SizedBox(height: 1.h),
+//                     TextButton.icon(
+//                       onPressed: () {
+//                         Navigator.pushNamed(context, '/edit-profile');
+//                       },
+//                       icon: Icon(Icons.edit, size: 18),
+//                       label: Text("Edit Profile"),
+//                     ),
+//                   ],
+//                 ),
+//               ),
 
-          SizedBox(height: 2.h),
+//               SizedBox(height: 2.h),
 
-          // Profile Options
-          _buildOption(context, Icons.edit, "Edit Profile", '/edit-profile'),
-          _buildOption(context, Icons.settings, "Settings", '/settings'),
-          Divider(),
-          ListTile(
-            leading: Icon(Icons.logout, color: Colors.red),
-            title: Text("Log Out", style: TextStyle(color: Colors.red)),
-            onTap: onLogout,
-          ),
+//               // --- Your Trips Section ---
+//               Padding(
+//                 padding: EdgeInsets.symmetric(horizontal: 4.w),
+//                 child: Align(
+//                   alignment: Alignment.centerLeft,
+//                   child: Text(
+//                     "Your Trips",
+//                     style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+//                   ),
+//                 ),
+//               ),
+//               SizedBox(height: 1.5.h),
 
-          SizedBox(height: 3.h),
+//               Padding(
+//                 padding: EdgeInsets.symmetric(horizontal: 4.w),
+//                 child: trips.isEmpty
+//                     ? Center(
+//                         child: Padding(
+//                           padding: EdgeInsets.only(top: 5.h),
+//                           child: Text("No trips added yet.", style: TextStyle(color: Colors.grey)),
+//                         ),
+//                       )
+//                     : GridView.builder(
+//                         shrinkWrap: true,
+//                         physics: NeverScrollableScrollPhysics(),
+//                         itemCount: trips.length,
+//                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+//                           crossAxisCount: 3,
+//                           crossAxisSpacing: 2.w,
+//                           mainAxisSpacing: 2.w,
+//                           childAspectRatio: 0.75,
+//                         ),
+//                         itemBuilder: (context, index) {
+//                           final trip = trips[index];
+//                           return GestureDetector(
+//                             onTap: () {
+//                               Navigator.pushNamed(context, '/trip-detail', arguments: trip);
+//                             },
+//                             child: ClipRRect(
+//                               borderRadius: BorderRadius.circular(12),
+//                               child: Image.network(
+//                                 trip['imageUrl'] ?? '',
+//                                 fit: BoxFit.cover,
+//                                 errorBuilder: (_, __, ___) => Container(
+//                                   color: Colors.grey.shade300,
+//                                   child: Icon(Icons.image, size: 24),
+//                                 ),
+//                               ),
+//                             ),
+//                           );
+//                         },
+//                       ),
+//               ),
+//             ],
+//           ),
+//         ),
 
-          // Your Trips Section
-          Text(
-            "Your Trips",
-            style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 2.h),
-
-          if (trips.isEmpty)
-            Center(child: Text("No trips added yet.", style: TextStyle(color: Colors.grey))),
-          ...trips.map((trip) => _buildTripCard(context, trip)).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOption(BuildContext context, IconData icon, String title, String route) {
-    return ListTile(
-      leading: Icon(icon, color: AppTheme.lightTheme.primaryColor),
-      title: Text(title),
-      trailing: Icon(Icons.chevron_right),
-      onTap: () => Navigator.pushNamed(context, route),
-    );
-  }
-
-  Widget _buildTripCard(BuildContext context, Map<String, String> trip) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 2.h),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: EdgeInsets.all(2.w),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            trip['imageUrl'] ?? '',
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Icon(Icons.image_not_supported),
-          ),
-        ),
-        title: Text(trip['title'] ?? 'Untitled'),
-        subtitle: Text(trip['destination'] ?? ''),
-        onTap: () {
-          Navigator.pushNamed(context, '/trip-detail', arguments: trip);
-        },
-      ),
-    );
-  }
-}
+//         // --- Logout button (Top right) ---
+//         Positioned(
+//           top: 2.h,
+//           right: 2.w,
+//           child: IconButton(
+//             icon: Icon(Icons.logout, color: Colors.red),
+//             onPressed: onLogout,
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }

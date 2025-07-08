@@ -78,10 +78,26 @@ class Post {
 //     return [];
 //   }
 // }
+Future<int> fetchTripCount(User? user) async {
+  if (user == null) return 0;
+
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('trips')
+        .where('user_id', isEqualTo: user.uid)
+        .get();
+
+    return snapshot.docs.length;
+  } catch (e) {
+    debugPrint('🔥 Error fetching trip count: $e');
+    return 0;
+  }
+}
 
 Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
   if (user == null) {
-    return Stream.value([]); // Return an empty list as a stream if no user is found
+    return Stream.value(
+        []); // Return an empty list as a stream if no user is found
   }
 
   try {
@@ -89,241 +105,364 @@ Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
     return FirebaseFirestore.instance
         .collection('trips')
         .where('user_id', isEqualTo: user.uid)
-        .orderBy('created_at', descending: true) // Order by creation date in descending order
+        .orderBy('created_at',
+            descending: true) // Order by creation date in descending order
         .snapshots() // Use snapshots() to listen to real-time updates
         .map((snapshot) {
-          // Map each document to a Map<String, dynamic>
-          return snapshot.docs.map((doc) {
-            final data = doc.data(); // Get document data
+      // Map each document to a Map<String, dynamic>
+      return snapshot.docs.map((doc) {
+        final data = doc.data(); // Get document data
 
-            // Extract and format the 'created_at' timestamp
-            final Timestamp createdAt = data['created_at'] ?? Timestamp.now(); // Default to current time if missing
-            final createdDate = createdAt.toDate(); // Convert to DateTime
-            final formattedDate =
-                "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}"; // Format the date
+        // Extract and format the 'created_at' timestamp
+        final Timestamp createdAt = data['created_at'] ??
+            Timestamp.now(); // Default to current time if missing
+        final createdDate = createdAt.toDate(); // Convert to DateTime
+        final formattedDate =
+            "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}"; // Format the date
 
-            // Determine the image URL
-            final image = (data['media_url']?.toString().isNotEmpty ?? false)
-                ? data['media_url']
-                : (data['heroImage']?.toString().isNotEmpty ?? false)
-                    ? data['heroImage']
-                    : null; // Use media_url first, otherwise fallback to heroImage
+        // Determine the image URL
+        final image = (data['media_url']?.toString().isNotEmpty ?? false)
+            ? data['media_url']
+            : (data['heroImage']?.toString().isNotEmpty ?? false)
+                ? data['heroImage']
+                : null; // Use media_url first, otherwise fallback to heroImage
 
-            // Return the data as a map
-            return {
-              'id': doc.id, // Document ID
-              'title': data['title'] ?? 'Untitled', // Title or default to 'Untitled'
-              'destination': data['destination'] ?? 'Unknown', // Destination or default to 'Unknown'
-              'image': image, // Image URL
-              'date': formattedDate, // Formatted date
-              'status': data['status'] ?? 'Upcoming', // Status or default to 'Upcoming'
-              'rating': data['rating']?.toDouble() ?? 0.0, // Rating, default to 0.0
-              'highlights': List<String>.from(data['highlights'] ?? []), // Highlights as a list of strings
-            };
-          }).toList(); // Convert the documents to a list of maps
-        });
+        // Return the data as a map
+        return {
+          'id': doc.id, // Document ID
+          'title':
+              data['title'] ?? 'Untitled', // Title or default to 'Untitled'
+          'destination': data['destination'] ??
+              'Unknown', // Destination or default to 'Unknown'
+          'image': image, // Image URL
+          'date': formattedDate, // Formatted date
+          'status':
+              data['status'] ?? 'Upcoming', // Status or default to 'Upcoming'
+          'rating': data['rating']?.toDouble() ?? 0.0, // Rating, default to 0.0
+          'highlights': List<String>.from(
+              data['highlights'] ?? []), // Highlights as a list of strings
+        };
+      }).toList(); // Convert the documents to a list of maps
+    });
   } catch (e) {
     debugPrint('🔥 Error fetching user trips: $e'); // Error handling
     return Stream.value([]); // Return an empty list in case of error
   }
 }
 
-
 Widget buildProfileTab(BuildContext context, User? currentUser) {
   return SliverToBoxAdapter(
-    child: Padding(
-      padding: EdgeInsets.all(4.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Profile",
-            style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 2.h),
-          _buildUserInfoSection(currentUser),
-          SizedBox(height: 3.h),
-          _buildUserTripsSection(currentUser),
-          SizedBox(height: 3.h),
-          _buildLogoutSection(context),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _buildUserInfoSection(User? currentUser) {
-  return Card(
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: ListTile(
-      contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-      leading: CircleAvatar(
-        radius: 24,
-        backgroundColor: AppTheme.lightTheme.primaryColor.withOpacity(0.1),
-        backgroundImage: currentUser?.photoURL != null
-            ? NetworkImage(currentUser!.photoURL!)
-            : null,
-        child: currentUser?.photoURL == null
-            ? Icon(Icons.person,
-                size: 24, color: AppTheme.lightTheme.primaryColor)
-            : null,
-      ),
-      title: Text(
-        currentUser?.displayName ?? 'Guest User',
-        style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: Text(
-        currentUser?.email ?? 'No email',
-        style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-          color: Colors.grey[600],
-        ),
-      ),
-    ),
-  );
-}
-
-Widget _buildUserTripsSection(User? user) {
-  return     Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Column(
       children: [
-        // Title for the section
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 6.w),
-          child: Text(
-            "My Trips",
-            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromARGB(255, 255, 255, 255), // цайвар мөнгөлөг
+                Color.fromARGB(255, 190, 190, 190), // бараан мөнгөлөг
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ),
-        ),
-        SizedBox(height: 1.h),
-
-        // StreamBuilder to fetch and display user trips
-        StreamBuilder<List<Map<String, dynamic>>>(
-          stream: fetchUserTrips(user), // Pass in the currentUser
-          builder: (context, snapshot) {
-            // Handle loading state
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
-            }
-
-            // Handle errors
-            if (snapshot.hasError) {
-              return Center(child: Text("Error loading trips"));
-            }
-
-            // Handle empty trips list
-            final trips = snapshot.data ?? [];
-            if (trips.isEmpty) {
-              return Padding(
-                padding: EdgeInsets.all(4.h),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(Icons.travel_explore, size: 12.w, color: Colors.grey),
-                      SizedBox(height: 2.h),
-                      Text("No trips yet"),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            // Display the trips
-            return ListView.builder(
-              shrinkWrap: true, // Makes the list take the required space
-              physics: NeverScrollableScrollPhysics(), // Prevent scrolling
-              itemCount: trips.length,
-              itemBuilder: (context, index) {
-                final trip = trips[index];
-                return Card(
-                  child: ListTile(
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: trip['image'] != null &&
-                              trip['image'].toString().isNotEmpty
-                          ? Image.network(
-                              trip['image'],
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  'assets/images/no-image.jpg',
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                );
-                              },
-                            )
-                          : Image.asset(
-                              'assets/images/no-image.jpg',
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                            ),
-                    ),
-                    title: Text(trip['title']),
-                    subtitle: Text("${trip['destination']} • ${trip['date']}"),
-                    onTap: () {
-                      // Navigate to Trip Detail screen when tapped
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TripDetailScreen(trip: trip),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ],
-    );
-}
-
-Widget _buildLogoutSection(BuildContext context) {
-  return Card(
-    elevation: 2,
-    child: ListTile(
-      leading: Icon(Icons.logout, color: Colors.red),
-      title: Text("Log Out", style: TextStyle(color: Colors.red)),
-      onTap: () async {
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text("Log Out"),
-            content: Text("Are you sure you want to log out?"),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text("Cancel")),
-              ElevatedButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text("Log Out")),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(40),
+              bottomRight: Radius.circular(40),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color.fromARGB(255, 178, 178, 178).withOpacity(0.2),
+                blurRadius: 25,
+                offset: Offset(0, 10),
+              ),
             ],
           ),
-        );
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 6.h),
+            child: Column(
+              children: [
+                // 👤 Avatar
+                CircleAvatar(
+                  radius: 45,
+                  backgroundColor: Colors.white,
+                  backgroundImage: currentUser?.photoURL != null
+                      ? NetworkImage(currentUser!.photoURL!)
+                      : null,
+                  child: currentUser?.photoURL == null
+                      ? Icon(Icons.person, size: 40, color: Colors.grey)
+                      : null,
+                ),
+                SizedBox(height: 1.h),
 
-        if (confirm == true) {
-          final auth = FirebaseAuthService();
-          await auth.signOut();
-          if (context.mounted) {
-            Navigator.pushNamedAndRemoveUntil(
-                context, '/user-login', (route) => false);
-          }
-        }
-      },
+                // 👑 Name
+                Text(
+                  currentUser?.displayName ?? 'Guest User',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                Text(
+                  currentUser?.email ?? 'No email',
+                  style: TextStyle(fontSize: 10.sp, color: Colors.grey[700]),
+                ),
+
+                SizedBox(height: 3.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildTripStat(currentUser),
+                    _buildStat("Saved", "0"),
+                    _buildLogoutStat(context),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 2.h),
+
+        // 🧳 My Trips Title
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("My Trips",
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
+            ],
+          ),
+        ),
+
+        // 🧳 Trip Grid
+        _buildUserTripsSection(currentUser),
+      ],
     ),
   );
 }
+
+Widget _buildTripStat(User? user) {
+  return FutureBuilder<int>(
+    future: fetchTripCount(user),
+    builder: (context, snapshot) {
+      final count = snapshot.data?.toString() ?? '0';
+      return _buildStat("Trips", count);
+    },
+  );
+}
+
+Widget _buildLogoutStat(BuildContext context) {
+  return GestureDetector(
+    onTap: () async {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text("Log Out"),
+          content: Text("Are you sure you want to log out?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text("Log Out"),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        final auth = FirebaseAuthService();
+        await auth.signOut();
+        if (context.mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/user-login', (route) => false);
+        }
+      }
+    },
+    child: Column(
+      children: [
+        Icon(Icons.logout, color: Colors.red, size: 24),
+        SizedBox(height: 0.5.h),
+        Text("Log Out", style: TextStyle(color: Colors.red, fontSize: 10.sp)),
+      ],
+    ),
+  );
+}
+
+Widget _buildStat(String label, String count) {
+  return Column(
+    children: [
+      Text(count,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+      Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 10.sp)),
+    ],
+  );
+}
+
+// Widget _buildUserInfoSection(User? currentUser) {
+//   return Card(
+//     elevation: 2,
+//     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+//     child: ListTile(
+//       contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+//       leading: CircleAvatar(
+//         radius: 24,
+//         backgroundColor: AppTheme.lightTheme.primaryColor.withOpacity(0.1),
+//         backgroundImage: currentUser?.photoURL != null
+//             ? NetworkImage(currentUser!.photoURL!)
+//             : null,
+//         child: currentUser?.photoURL == null
+//             ? Icon(Icons.person,
+//                 size: 24, color: AppTheme.lightTheme.primaryColor)
+//             : null,
+//       ),
+//       title: Text(
+//         currentUser?.displayName ?? 'Guest User',
+//         style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+//           fontWeight: FontWeight.w600,
+//         ),
+//       ),
+//       subtitle: Text(
+//         currentUser?.email ?? 'No email',
+//         style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+//           color: Colors.grey[600],
+//         ),
+//       ),
+//     ),
+//   );
+// }
+
+Widget _buildUserTripsSection(User? user) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(height: 1.h),
+
+      // StreamBuilder to fetch and display user trips
+      StreamBuilder<List<Map<String, dynamic>>>(
+        stream: fetchUserTrips(user), // Pass in the currentUser
+        builder: (context, snapshot) {
+          // Handle loading state
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          // Handle errors
+          if (snapshot.hasError) {
+            return Center(child: Text("Error loading trips"));
+          }
+
+          // Handle empty trips list
+          final trips = snapshot.data ?? [];
+          if (trips.isEmpty) {
+            return Padding(
+              padding: EdgeInsets.all(4.h),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.travel_explore, size: 12.w, color: Colors.grey),
+                    SizedBox(height: 2.h),
+                    Text("No trips yet"),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          // Display the trips
+          return ListView.builder(
+            shrinkWrap: true, // Makes the list take the required space
+            physics: NeverScrollableScrollPhysics(), // Prevent scrolling
+            itemCount: trips.length,
+            itemBuilder: (context, index) {
+              final trip = trips[index];
+              return Card(
+                child: ListTile(
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: trip['image'] != null &&
+                            trip['image'].toString().isNotEmpty
+                        ? Image.network(
+                            trip['image'],
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/no-image.jpg',
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/no-image.jpg',
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                  title: Text(trip['title']),
+                  subtitle: Text("${trip['destination']} • ${trip['date']}"),
+                  onTap: () {
+                    // Navigate to Trip Detail screen when tapped
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TripDetailScreen(trip: trip),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
+    ],
+  );
+}
+
+// Widget _buildLogoutSection(BuildContext context) {
+//   return Card(
+//     elevation: 2,
+//     child: ListTile(
+//       leading: Icon(Icons.logout, color: Colors.red),
+//       title: Text("Log Out", style: TextStyle(color: Colors.red)),
+//       onTap: () async {
+//         final confirm = await showDialog<bool>(
+//           context: context,
+//           builder: (context) => AlertDialog(
+//             title: Text("Log Out"),
+//             content: Text("Are you sure you want to log out?"),
+//             actions: [
+//               TextButton(
+//                   onPressed: () => Navigator.pop(context, false),
+//                   child: Text("Cancel")),
+//               ElevatedButton(
+//                   onPressed: () => Navigator.pop(context, true),
+//                   child: Text("Log Out")),
+//             ],
+//           ),
+//         );
+
+//         if (confirm == true) {
+//           final auth = FirebaseAuthService();
+//           await auth.signOut();
+//           if (context.mounted) {
+//             Navigator.pushNamedAndRemoveUntil(
+//                 context, '/user-login', (route) => false);
+//           }
+//         }
+//       },
+//     ),
+//   );
+// }
 
 class TripDetailScreen extends StatelessWidget {
   final Map<String, dynamic> trip;
