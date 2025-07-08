@@ -159,8 +159,8 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color.fromARGB(255, 255, 255, 255), // цайвар мөнгөлөг
-                Color.fromARGB(255, 190, 190, 190), // бараан мөнгөлөг
+                Color.fromARGB(255, 255, 255, 255), 
+                Color.fromARGB(255, 190, 190, 190),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,

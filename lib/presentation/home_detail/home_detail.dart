@@ -181,6 +181,95 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
     }
   }
 
+  void _showReviewBottomSheet(BuildContext context) {
+    final TextEditingController _commentController = TextEditingController();
+    double _rating = 5;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 4.h,
+            left: 4.w,
+            right: 4.w,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Write a Review",
+                  style: AppTheme.lightTheme.textTheme.titleLarge),
+              SizedBox(height: 2.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < _rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                    ),
+                    onPressed: () {
+                      setState(() => _rating = (index + 1).toDouble());
+                    },
+                  );
+                }),
+              ),
+              TextField(
+                controller: _commentController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Share your experience...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 2.h),
+              ElevatedButton(
+                onPressed: () async {
+                  await _submitReview(_rating, _commentController.text);
+                  Navigator.pop(context);
+                },
+                child: Text("Submit Review"),
+              ),
+              SizedBox(height: 2.h),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _submitReview(double rating, String comment) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _destinationId == null) return;
+
+    final userData = await FirebaseFirestore.instance
+        .collection('user_profiles')
+        .doc(user.uid)
+        .get();
+
+    await FirebaseFirestore.instance
+        .collection('destinations')
+        .doc(_destinationId)
+        .collection('reviews')
+        .add({
+      'userId': user.uid,
+      'userName': userData['name'],
+      'userAvatar': userData['photoUrl'] ?? '',
+      'rating': rating,
+      'comment': comment,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Review submitted successfully!')),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -310,6 +399,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
     _fabAnimationController.dispose();
     super.dispose();
   }
+
 
   void _checkIfSaved() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -503,34 +593,9 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
                         .cast<Map<String, dynamic>>(),
                   ),
 
-                SizedBox(height: 3.h),
-
-                // Weather Section (optional)
-                if (destinationData!.containsKey("weather"))
-                  WeatherSectionWidget(
-                    weatherData: (destinationData!["weather"] as List)
-                        .cast<Map<String, dynamic>>(),
-                  ),
-
-                SizedBox(height: 3.h),
-
-                // Interactive Map (optional)
-                if (destinationData!.containsKey("coordinates"))
-                  InteractiveMapWidget(
-                    coordinates:
-                        destinationData!["coordinates"] as Map<String, dynamic>,
-                    title: destinationData!["title"] as String,
-                  ),
-
-                SizedBox(height: 3.h),
 
                 // Reviews Section
-                // ReviewsSectionWidget(
-                //   reviews: (destinationData!["reviews"] as List)
-                //       .cast<Map<String, dynamic>>(),
-                //   averageRating: destinationData!["rating"] as double,
-                //   totalReviews: destinationData!["reviewCount"] as int,
-                // ),
+                ReviewsSectionWidget(destinationId: _destinationId!),
 
                 SizedBox(height: 12.h), // Space for sticky action bar
               ],

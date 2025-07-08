@@ -1,258 +1,168 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sizer/sizer.dart';
 
-import '../../../core/app_export.dart';
-
 class ReviewsSectionWidget extends StatefulWidget {
-  final List<Map<String, dynamic>> reviews;
-  final double averageRating;
-  final int totalReviews;
+  final String destinationId;
 
-  const ReviewsSectionWidget({
-    super.key,
-    required this.reviews,
-    required this.averageRating,
-    required this.totalReviews,
-  });
+  const ReviewsSectionWidget({super.key, required this.destinationId});
 
   @override
   State<ReviewsSectionWidget> createState() => _ReviewsSectionWidgetState();
 }
 
 class _ReviewsSectionWidgetState extends State<ReviewsSectionWidget> {
-  bool _showAllReviews = false;
+  final TextEditingController _commentController = TextEditingController();
+  double _rating = 5;
 
-  Widget _buildStarRating(int rating) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (index) {
-        return CustomIconWidget(
-          iconName: index < rating ? 'star' : 'star_border',
-          color: index < rating
-              ? Colors.amber
-              : AppTheme.lightTheme.colorScheme.outline,
-          size: 16,
-        );
-      }),
-    );
+  Future<void> _submitReview() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || _commentController.text.trim().isEmpty) return;
+
+    final userData = await FirebaseFirestore.instance
+        .collection('user_profiles')
+        .doc(user.uid)
+        .get();
+
+    await FirebaseFirestore.instance
+        .collection('destinations')
+        .doc(widget.destinationId)
+        .collection('reviews')
+        .add({
+      'userId': user.uid,
+      'userName': userData['name'],
+      'userAvatar': userData['photoUrl'] ?? '',
+      'rating': _rating,
+      'comment': _commentController.text.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    _commentController.clear();
+    setState(() => _rating = 5);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Сэтгэгдэл илгээгдлээ!')));
+  }
+
+  String _formatTimestamp(Timestamp timestamp) {
+    final date = timestamp.toDate();
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays >= 7) {
+      return '${(difference.inDays / 7).floor()} долоо хоногийн өмнө';
+    } else if (difference.inDays >= 1) {
+      return '${difference.inDays} хоногийн өмнө';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours} цагийн өмнө';
+    } else {
+      return 'Саяхан';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final displayedReviews =
-        _showAllReviews ? widget.reviews : widget.reviews.take(2).toList();
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 4.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ⭐ Review input
+        Padding(
+          padding: EdgeInsets.all(4.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Reviews & Ratings',
-                style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.lightTheme.colorScheme.onSurface,
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text('Write a review feature coming soon!')),
+              Text("Сэтгэгдэл үлдээх", style: Theme.of(context).textTheme.titleMedium),
+              SizedBox(height: 1.h),
+              Row(
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < _rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                    ),
+                    onPressed: () {
+                      setState(() => _rating = (index + 1).toDouble());
+                    },
                   );
-                },
-                child: Text(
-                  'Write Review',
-                  style: AppTheme.lightTheme.textTheme.labelLarge?.copyWith(
-                    color: AppTheme.lightTheme.colorScheme.primary,
-                  ),
+                }),
+              ),
+              TextField(
+                controller: _commentController,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  hintText: "Таны сэтгэгдэл...",
+                  border: OutlineInputBorder(),
                 ),
               ),
+              SizedBox(height: 1.h),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: _submitReview,
+                  child: Text("Илгээх"),
+                ),
+              )
             ],
           ),
-          SizedBox(height: 2.h),
+        ),
 
-          // Rating Summary
-          Container(
-            padding: EdgeInsets.all(4.w),
-            decoration: BoxDecoration(
-              color: AppTheme.lightTheme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.averageRating.toString(),
-                      style:
-                          AppTheme.lightTheme.textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.lightTheme.colorScheme.onSurface,
-                      ),
-                    ),
-                    _buildStarRating(widget.averageRating.round()),
-                    SizedBox(height: 0.5.h),
-                    Text(
-                      '${widget.totalReviews} reviews',
-                      style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(width: 6.w),
-                Expanded(
-                  child: Column(
+        Divider(),
+
+        // 📄 Review List
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.w),
+          child: Text("Сэтгэгдлүүд", style: Theme.of(context).textTheme.titleLarge),
+        ),
+        SizedBox(height: 1.h),
+
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('destinations')
+              .doc(widget.destinationId)
+              .collection('reviews')
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.all(4.w),
+                child: Text('Одоогоор сэтгэгдэл алга байна.'),
+              );
+            }
+
+            final reviews = snapshot.data!.docs;
+
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: reviews.length,
+              itemBuilder: (context, index) {
+                final review = reviews[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: NetworkImage(review['userAvatar']),
+                  ),
+                  title: Text(review['userName']),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildRatingBar(5, 0.7),
-                      _buildRatingBar(4, 0.2),
-                      _buildRatingBar(3, 0.05),
-                      _buildRatingBar(2, 0.03),
-                      _buildRatingBar(1, 0.02),
+                      Text("${review['rating']} ★"),
+                      Text(review['comment']),
+                      Text(
+                        _formatTimestamp(review['createdAt']),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: 3.h),
-
-          // Individual Reviews
-          ...displayedReviews.map((review) => Container(
-                margin: EdgeInsets.only(bottom: 3.h),
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  color: AppTheme.lightTheme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage:
-                              NetworkImage(review["userAvatar"] as String),
-                        ),
-                        SizedBox(width: 3.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                review["userName"] as String,
-                                style: AppTheme.lightTheme.textTheme.titleSmall
-                                    ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      AppTheme.lightTheme.colorScheme.onSurface,
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  _buildStarRating(review["rating"] as int),
-                                  SizedBox(width: 2.w),
-                                  Text(
-                                    review["date"] as String,
-                                    style: AppTheme
-                                        .lightTheme.textTheme.bodySmall
-                                        ?.copyWith(
-                                      color: AppTheme.lightTheme.colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      review["comment"] as String,
-                      style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-
-          // Show More/Less Button
-          if (widget.reviews.length > 2)
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  setState(() {
-                    _showAllReviews = !_showAllReviews;
-                  });
-                },
-                child: Text(
-                  _showAllReviews ? 'Show Less' : 'Show All Reviews',
-                  style: AppTheme.lightTheme.textTheme.labelLarge?.copyWith(
-                    color: AppTheme.lightTheme.colorScheme.primary,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRatingBar(int stars, double percentage) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 0.2.h),
-      child: Row(
-        children: [
-          Text(
-            '$stars',
-            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          SizedBox(width: 2.w),
-          Expanded(
-            child: LinearProgressIndicator(
-              value: percentage,
-              backgroundColor: AppTheme.lightTheme.colorScheme.outline
-                  .withValues(alpha: 0.3),
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
-              minHeight: 4,
-            ),
-          ),
-          SizedBox(width: 2.w),
-          Text(
-            '${(percentage * 100).round()}%',
-            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-              color: AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+                );
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 }
