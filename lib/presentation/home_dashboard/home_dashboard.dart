@@ -29,7 +29,7 @@ class _HomeDashboardState extends State<HomeDashboard>
   User? _currentUser;
   Map<String, dynamic>? _currentUserProfile;
   Set<String> savedDestinationIds = {};
-
+  String _currentCategory = 'All';
   // Mock data for travel dashboard
   List<Map<String, dynamic>> postedTrips = [];
   // final List<Map<String, dynamic>> recentTrips = [
@@ -222,10 +222,7 @@ class _HomeDashboardState extends State<HomeDashboard>
         return {
           'id': doc.id,
           'name': data['name'] ?? '',
-          'image':
-              (data['image'] != null && data['image'].toString().isNotEmpty)
-                  ? data['image']
-                  : 'https://via.placeholder.com/300',
+          'image': data['image'] ?? 'https://via.placeholder.com/300',
           'price': data['price'] ?? '',
           'rating': (data['rating'] ?? 0.0).toDouble(),
           'duration': data['duration'] ?? '',
@@ -256,7 +253,7 @@ class _HomeDashboardState extends State<HomeDashboard>
       return docs.where((doc) => doc.exists).map((doc) {
         final data = doc.data()!;
         return {
-          'id': doc.id, // ✅ зөв: зөвхөн doc.id-г ашиглаж байна
+          'id': doc.id,
           'name': data['name'],
           'image': data['image'],
           'price': data['price'],
@@ -266,7 +263,6 @@ class _HomeDashboardState extends State<HomeDashboard>
           'subtitle': data['subtitle'],
           'description': data['description'],
           'photos': data['photos'],
-          // ⚠️ Хэрвээ data['id'] байсан ч, энд оруулахгүй
         };
       }).toList();
     });
@@ -285,7 +281,6 @@ class _HomeDashboardState extends State<HomeDashboard>
         _currentUser = user;
       });
 
-      // 👇 Listen to saved destinations
       FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -304,6 +299,26 @@ class _HomeDashboardState extends State<HomeDashboard>
     _tabController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Stream<List<String>> fetchCategories() async* {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('destinations').get();
+
+      final allCategories = snapshot.docs
+          .map((doc) => doc['category'] as String)
+          .toSet()
+          .toList();
+
+      allCategories.sort(); // Sort categories A-Z
+      allCategories.insert(0, 'All'); // Insert 'All' category at the start
+
+      yield allCategories;
+    } catch (e) {
+      print('Error fetching categories: $e');
+      yield ['All']; // Return 'All' category if error occurs
+    }
   }
 
   // Future<void> _xAfetchPostedTrips() async {
@@ -479,7 +494,7 @@ class _HomeDashboardState extends State<HomeDashboard>
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       setState(() {
-        _currentUser = user; // ✅ Make sure this is always set
+        _currentUser = user;
       });
 
       final doc = await FirebaseFirestore.instance
@@ -503,25 +518,20 @@ class _HomeDashboardState extends State<HomeDashboard>
           onRefresh: _handleRefresh,
           color: AppTheme.lightTheme.primaryColor,
           child: CustomScrollView(
-  controller: _scrollController,
-  slivers: [
-    if (_currentTabIndex != 2) _buildStickyHeader(),
-
-    if (_currentTabIndex == 0) ...[
-      _buildHeroSection(),
-      _buildFilteredDestinationsSection(),
-      _buildRecommendedDestinationsSection(),
-      _buildRecentTripsSection(),
-    ],
-    if (_currentTabIndex == 1)
-      _buildSavedDestinationsSection(_currentUser?.uid),
-    if (_currentTabIndex == 2)
-      buildProfileTab(context, _currentUser),
-
-    SliverToBoxAdapter(child: SizedBox(height: 10.h)),
-  ],
-),
-
+            controller: _scrollController,
+            slivers: [
+              if (_currentTabIndex != 2) _buildStickyHeader(),
+              if (_currentTabIndex == 0) ...[
+                _buildHeroSection(),
+                _buildRecommendedDestinationsSection(),
+                _buildRecentTripsSection(),
+              ],
+              if (_currentTabIndex == 1)
+                _buildSavedDestinationsSection(_currentUser?.uid),
+              if (_currentTabIndex == 2) buildProfileTab(context, _currentUser),
+              SliverToBoxAdapter(child: SizedBox(height: 10.h)),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
@@ -607,90 +617,90 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
 // 🔁 StreamBuilder хэвээр байлгана
-Widget _buildNotificationIcon() {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return const SizedBox.shrink();
+  Widget _buildNotificationIcon() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const SizedBox.shrink();
 
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('user_profiles') // ✅ Зөв collection path
-        .doc(user.uid)
-        .collection('notifications')
-        .where('isRead', isEqualTo: false)
-        .snapshots(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return _buildNotificationBaseIcon(); // loading үед badge байхгүй icon
-      }
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('user_profiles') // ✅ Зөв collection path
+          .doc(user.uid)
+          .collection('notifications')
+          .where('isRead', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildNotificationBaseIcon(); // loading үед badge байхгүй icon
+        }
 
-      final unreadCount = snapshot.data?.docs.length ?? 0;
+        final unreadCount = snapshot.data?.docs.length ?? 0;
 
-      return GestureDetector(
-        onTap: () async {
-          // ✅ Mark all as read
-          await markAllNotificationsAsRead(user.uid);
+        return GestureDetector(
+          onTap: () async {
+            // ✅ Mark all as read
+            await markAllNotificationsAsRead(user.uid);
 
-          // ✅ Navigate to notification detail screen
-          if (context.mounted) {
-            Navigator.pushNamed(context, '/push-notification-settings');
-          }
-        },
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            _buildNotificationBaseIcon(),
-            if (unreadCount > 0)
-              Positioned(
-                top: -4,
-                right: -4,
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-                  child: Center(
-                    child: Text(
-                      unreadCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+            // ✅ Navigate to notification detail screen
+            if (context.mounted) {
+              Navigator.pushNamed(context, '/push-notification-settings');
+            }
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _buildNotificationBaseIcon(),
+              if (unreadCount > 0)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints:
+                        const BoxConstraints(minWidth: 22, minHeight: 22),
+                    child: Center(
+                      child: Text(
+                        unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
-      );
-    },
-  );
-}
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-Widget _buildNotificationBaseIcon() {
-  return Container(
-    padding: EdgeInsets.all(2.w),
-    decoration: BoxDecoration(
-      color: AppTheme.lightTheme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withAlpha(15),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: CustomIconWidget(
-      iconName: 'notifications',
-      color: AppTheme.lightTheme.primaryColor,
-      size: 24,
-    ),
-  );
-}
-
+  Widget _buildNotificationBaseIcon() {
+    return Container(
+      padding: EdgeInsets.all(2.w),
+      decoration: BoxDecoration(
+        color: AppTheme.lightTheme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: CustomIconWidget(
+        iconName: 'notifications',
+        color: AppTheme.lightTheme.primaryColor,
+        size: 24,
+      ),
+    );
+  }
 
   Widget _buildStickyHeader() {
     final currentUser = FirebaseAuthService().currentUser;
@@ -883,118 +893,132 @@ Widget _buildNotificationBaseIcon() {
     );
   }
 
-  Widget _buildFilteredDestinationsSection() {
-    return SliverToBoxAdapter(
-      child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: fetchDestinationsByCategory('tr'),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final destinations = snapshot.data;
-
-          if (destinations == null || destinations.isEmpty) {
-            return const Center(child: Text('No destinations found.'));
-          }
-
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: destinations.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 0.75,
-            ),
-            itemBuilder: (context, index) {
-              final destination = destinations[index];
-              return RecommendedDestinationWidget(
-                name: destination["name"] as String,
-                imageUrl: destination["image"] as String,
-                price: destination["price"] as String,
-                rating: destination["rating"] as double,
-                duration: destination["duration"] as String,
-                category: destination["category"] as String,
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  '/home-detail',
-                  arguments: destination['id'],
-                ),
-                isSaved: savedDestinationIds.contains(destination['id']), // ✅
-                onFavoriteToggle: () =>
-                    _toggleSaveDestination(destination['id']), // ✅
-              );
-            },
-          );
-        },
+  Widget _buildCategoryFilter(String category, bool isSelected) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentCategory = category; // Update the current category
+        });
+        print('Category tapped: $category');
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+        margin: EdgeInsets.only(right: 4.w),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.lightTheme.colorScheme.secondary
+              : AppTheme.lightTheme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(70),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.lightTheme.primaryColor
+                : AppTheme.lightTheme.colorScheme.onSurface,
+          ),
+        ),
+        child: Text(
+          category,
+          style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+            color: isSelected
+                ? Colors.white
+                : AppTheme.lightTheme.colorScheme.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildRecommendedDestinationsSection() {
     return SliverToBoxAdapter(
-      child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: fetchRecommendedDestinations(), // 👈 stream ашиглаж байна
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text("Error loading destinations"));
-          }
-
-          final destinations = snapshot.data ?? [];
-
-          if (destinations.isEmpty) {
-            return Center(child: Text("No destinations found"));
-          }
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 3.h),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        "Recommended Destinations",
-                        style:
-                            AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.sp,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 3.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    "Recommended Destinations",
+                    style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
                     ),
-                    TextButton(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/all-destinations'),
-                      child: Text(
-                        "View All",
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 ),
-              ),
-              SizedBox(height: 1.h),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                child: GridView.builder(
+                TextButton(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/all-destinations'),
+                  child: Text(
+                    "View All",
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 1.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: StreamBuilder<List<String>>(
+              stream: fetchCategories(), // Fetch all categories
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                }
+
+                if (snapshot.hasError) {
+                  return Text('Error loading categories');
+                }
+
+                final categories = snapshot.data ?? [];
+
+                return SizedBox(
+                  height: 5.h,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final category = categories[index];
+                      final isSelected = _currentCategory == category;
+                      return _buildCategoryFilter(category, isSelected);
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 1.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _currentCategory == 'All'
+                  ? fetchRecommendedDestinations()
+                  : fetchDestinationsByCategory(
+                      _currentCategory), // Apply the filter based on category
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error loading destinations"));
+                }
+
+                final destinations = snapshot.data ?? [];
+
+                if (destinations.isEmpty) {
+                  return Center(child: Text("No destinations found"));
+                }
+
+                return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -1018,17 +1042,16 @@ Widget _buildNotificationBaseIcon() {
                         '/home-detail',
                         arguments: destination['id'],
                       ),
-                      isSaved:
-                          savedDestinationIds.contains(destination['id']), // ✅
+                      isSaved: savedDestinationIds.contains(destination['id']),
                       onFavoriteToggle: () =>
-                          _toggleSaveDestination(destination['id']), // ✅
+                          _toggleSaveDestination(destination['id']),
                     );
                   },
-                ),
-              ),
-            ],
-          );
-        },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -107,9 +107,8 @@ class RecommendedDestinationWidget extends StatelessWidget {
                 ),
                 child: CustomIconWidget(
                   iconName: isSaved ? 'favorite_border' : 'favorite_border',
-                  color: isSaved
-                      ? Colors.red
-                      : AppTheme.lightTheme.primaryColor,
+                  color:
+                      isSaved ? Colors.red : AppTheme.lightTheme.primaryColor,
                   size: 20,
                 ),
               ),
