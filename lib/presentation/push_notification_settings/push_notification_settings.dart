@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sizer/sizer.dart';
-import 'package:travelmate/presentation/push_notification_settings/notificationStorage.dart';
 import 'package:travelmate/firebase_msg.dart'; // 👈 FCM service import
 
 class ReceivedNotification {
@@ -83,7 +82,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       final data = doc.data();
       return ReceivedNotification(
         title: data['title'] ?? '',
-        body: data['body'] ?? '',
+        body: data['body'] ?? data['message'] ?? '',
         timestamp:
             (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       );
@@ -104,83 +103,111 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0.5,
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(4.w),
-        child: receivedNotifications.isEmpty
-            ? Center(
-                child: Text(
-                  'No notifications yet',
-                  style: TextStyle(fontSize: 12.sp, color: Colors.grey),
-                ),
-              )
-            : ListView.builder(
-                itemCount: receivedNotifications.length,
-                itemBuilder: (context, index) {
-                  final notif = receivedNotifications[index];
-                  return Container(
-                    margin: EdgeInsets.symmetric(vertical: 1.h),
-                    padding: EdgeInsets.all(3.w),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage:
-                              AssetImage('assets/images/avatar.png'),
-                        ),
-                        SizedBox(width: 3.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RichText(
-                                text: TextSpan(
-                                  text: notif.title,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                    fontSize: 13.sp,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text:
-                                          "  • ${formatTime(notif.timestamp)}",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.grey,
-                                        fontSize: 11.sp,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                              SizedBox(height: 0.5.h),
-                              Text(
-                                notif.body,
-                                style: TextStyle(fontSize: 11.5.sp),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.image, size: 24, color: Colors.grey.shade400)
-                      ],
-                    ),
-                  );
-                },
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('Notifications'),
+      centerTitle: true,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      elevation: 1,
+    ),
+    body: Padding(
+      padding: EdgeInsets.all(4.w),
+      child: receivedNotifications.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_none,
+                      size: 48, color: Colors.grey.shade400),
+                  SizedBox(height: 1.h),
+                  Text(
+                    'No notifications yet',
+                    style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                  ),
+                ],
               ),
-      ),
-    );
-  }
+            )
+          : ListView.builder(
+              itemCount: receivedNotifications.length,
+              itemBuilder: (context, index) {
+                final notif = receivedNotifications[index];
+                return Container(
+                  margin: EdgeInsets.symmetric(vertical: 1.h),
+                  padding: EdgeInsets.all(3.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: EdgeInsets.all(2.w),
+                        child: Icon(
+                          Icons.notifications,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 22.sp,
+                        ),
+                      ),
+                      SizedBox(width: 3.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RichText(
+                              text: TextSpan(
+                                text: notif.title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                  fontSize: 12.5.sp,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: "  • ${formatTime(notif.timestamp)}",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.normal,
+                                      color: Colors.grey,
+                                      fontSize: 11.sp,
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 0.7.h),
+                            Text(
+                              notif.body,
+                              style: TextStyle(
+                                fontSize: 11.5.sp,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+    ),
+  );
+}
+
 }
