@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:sizer/sizer.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/profiletab.dart';
@@ -32,140 +33,6 @@ class _HomeDashboardState extends State<HomeDashboard>
   String _currentCategory = 'All';
   // Mock data for travel dashboard
   List<Map<String, dynamic>> postedTrips = [];
-  // final List<Map<String, dynamic>> recentTrips = [
-  //   {
-  //     "id": 1,
-  //     "destination": "Paris, France",
-  //     "image":
-  //         "https://images.pexels.com/photos/338515/pexels-photo-338515.jpeg",
-  //     "date": "Dec 15-22, 2023",
-  //     "status": "Completed",
-  //     "rating": 4.8,
-  //     "highlights": ["Eiffel Tower", "Louvre Museum", "Seine River Cruise"]
-  //   },
-  //   {
-  //     "id": 2,
-  //     "destination": "Tokyo, Japan",
-  //     "image":
-  //         "https://images.pexels.com/photos/2506923/pexels-photo-2506923.jpeg",
-  //     "date": "Jan 10-18, 2024",
-  //     "status": "Completed",
-  //     "rating": 4.9,
-  //     "highlights": ["Shibuya Crossing", "Mount Fuji", "Cherry Blossoms"]
-  //   },
-  //   {
-  //     "id": 3,
-  //     "destination": "Bali, Indonesia",
-  //     "image":
-  //         "https://images.pexels.com/photos/2474690/pexels-photo-2474690.jpeg",
-  //     "date": "Mar 5-12, 2024",
-  //     "status": "Upcoming",
-  //     "rating": 0.0,
-  //     "highlights": ["Beach Resorts", "Temple Tours", "Rice Terraces"]
-  //   }
-  // ];
-
-  // final List<Map<String, dynamic>> recommendedDestinations = [
-  //   {
-  //     "id": 1,
-  //     "name": "Santorini, Greece",
-  //     "image":
-  //         "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
-  //     "price": "\$1,299",
-  //     "rating": 4.7,
-  //     "duration": "7 days",
-  //     "category": "Beach & Culture"
-  //   },
-  //   {
-  //     "id": 2,
-  //     "name": "Swiss Alps",
-  //     "image":
-  //         "https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg",
-  //     "price": "\$1,899",
-  //     "rating": 4.9,
-  //     "duration": "10 days",
-  //     "category": "Adventure"
-  //   },
-  //   {
-  //     "id": 3,
-  //     "name": "Dubai, UAE",
-  //     "image":
-  //         "https://images.pexels.com/photos/1470405/pexels-photo-1470405.jpeg",
-  //     "price": "\$999",
-  //     "rating": 4.6,
-  //     "duration": "5 days",
-  //     "category": "Luxury"
-  //   },
-  //   {
-  //     "id": 4,
-  //     "name": "Iceland",
-  //     "image":
-  //         "https://images.pexels.com/photos/1433052/pexels-photo-1433052.jpeg",
-  //     "price": "\$1,599",
-  //     "rating": 4.8,
-  //     "duration": "8 days",
-  //     "category": "Nature"
-  //   }
-  // ];
-
-  // final List<Map<String, dynamic>> travelTips = [
-  //   {
-  //     "id": 1,
-  //     "title": "10 Essential Packing Tips for International Travel",
-  //     "image":
-  //         "https://images.pexels.com/photos/1008155/pexels-photo-1008155.jpeg",
-  //     "readTime": "5 min read",
-  //     "category": "Packing",
-  //     "excerpt": "Master the art of efficient packing with these expert tips..."
-  //   },
-  //   {
-  //     "id": 2,
-  //     "title": "Budget Travel: How to See the World for Less",
-  //     "image":
-  //         "https://images.pexels.com/photos/1010657/pexels-photo-1010657.jpeg",
-  //     "readTime": "8 min read",
-  //     "category": "Budget",
-  //     "excerpt":
-  //         "Discover proven strategies to travel more while spending less..."
-  //   },
-  //   {
-  //     "id": 3,
-  //     "title": "Solo Female Travel Safety Guide",
-  //     "image":
-  //         "https://images.pexels.com/photos/1371360/pexels-photo-1371360.jpeg",
-  //     "readTime": "6 min read",
-  //     "category": "Safety",
-  //     "excerpt": "Essential safety tips for confident solo female travelers..."
-  //   }
-  // ];
-
-  // final List<Map<String, dynamic>> upcomingReminders = [
-  //   {
-  //     "id": 1,
-  //     "title": "Flight Check-in",
-  //     "subtitle": "Bali Trip - Check in opens in 2 hours",
-  //     "time": "2 hours",
-  //     "type": "flight",
-  //     "priority": "high"
-  //   },
-  //   {
-  //     "id": 2,
-  //     "title": "Passport Renewal",
-  //     "subtitle": "Expires in 6 months - Renew now",
-  //     "time": "6 months",
-  //     "type": "document",
-  //     "priority": "medium"
-  //   },
-  //   {
-  //     "id": 3,
-  //     "title": "Travel Insurance",
-  //     "subtitle": "Purchase for upcoming Bali trip",
-  //     "time": "3 days",
-  //     "type": "insurance",
-  //     "priority": "high"
-  //   }
-  // ];
-
   List<Map<String, dynamic>> recommendedDestinations = [];
   Future<void> markAllNotificationsAsRead(String userId) async {
     final userNotificationsRef = FirebaseFirestore.instance
@@ -320,71 +187,6 @@ class _HomeDashboardState extends State<HomeDashboard>
       yield ['All']; // Return 'All' category if error occurs
     }
   }
-
-  // Future<void> _xAfetchPostedTrips() async {
-  //   final user = FirebaseAuth.instance.currentUser;
-  //   if (user != null) {
-  //     // 🛠️ get() үр дүнгээ хадгалж байна
-  //     final snapshot = await FirebaseFirestore.instance
-  //         .collection('trips')
-  //         .where('user_id', isEqualTo: user.uid)
-  //         .orderBy('created_at', descending: true)
-  //         .get();
-
-  //     setState(() {
-  //       postedTrips = snapshot.docs.map((doc) {
-  //         final data = doc.data();
-  //         return {
-  //           'id': doc.id,
-  //           'destination': data['destination'] ?? '',
-  //           'image': data['media_url'] ?? '',
-  //           'date': _formatDateRange(data['start_date'], data['end_date']),
-  //           'status': 'Upcoming',
-  //           'rating': 0.0,
-  //           'highlights': [],
-  //         };
-  //       }).toList();
-  //     });
-  //   }
-  // }
-  // Future<void> _fetchUserOwnTrips() async {
-  //   final user = FirebaseAuth.instance.currentUser;
-  //   if (user == null) return;
-
-  //   try {
-  //     final snapshot = await FirebaseFirestore.instance
-  //         .collection('trips')
-  //         .where('user_id', isEqualTo: user.uid)
-  //         .orderBy('created_at', descending: true)
-  //         .get();
-
-  //     setState(() {
-  //       postedTrips = snapshot.docs.map((doc) {
-  //         final data = doc.data();
-  //         final Timestamp createdAt = data['created_at'] ?? Timestamp.now();
-  //         final createdDate = createdAt.toDate();
-
-  //         final formattedDate =
-  //             "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}";
-
-  //         return {
-  //           'id': doc.id,
-  //           'title': data['title'] ?? 'Untitled',
-  //           'destination': data['destination'] ?? '',
-  //           'image': (data['media_url'] ?? '').toString().isNotEmpty
-  //               ? data['media_url']
-  //               : 'https://via.placeholder.com/300',
-  //           'date': formattedDate,
-  //           'status': 'Upcoming',
-  //           'rating': data['rating'] ?? 0.0,
-  //           'highlights': List<String>.from(data['highlights'] ?? []),
-  //         };
-  //       }).toList();
-  //     });
-  //   } catch (e) {
-  //     debugPrint('Error fetching user trips: $e');
-  //   }
-  // }
 
   Future<void> _fetchPostedTrips() async {
     final snapshot = await FirebaseFirestore.instance
@@ -617,7 +419,6 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-// 🔁 StreamBuilder хэвээр байлгана
   Widget _buildNotificationIcon() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
@@ -749,35 +550,6 @@ class _HomeDashboardState extends State<HomeDashboard>
                       ],
                     ),
                   ),
-                  // Row(
-                  //   children: [
-                  //     WeatherWidget(),
-                  //     SizedBox(width: 2.w),
-                  //     GestureDetector(
-                  //       onTap: () => Navigator.pushNamed(
-                  //           context, '/push-notification-settings'),
-                  //       child: Container(
-                  //         padding: EdgeInsets.all(2.w),
-                  //         decoration: BoxDecoration(
-                  //           color: AppTheme.lightTheme.colorScheme.surface,
-                  //           borderRadius: BorderRadius.circular(12),
-                  //           boxShadow: [
-                  //             BoxShadow(
-                  //               color: Colors.black.withValues(alpha: 0.05),
-                  //               blurRadius: 8,
-                  //               offset: const Offset(0, 2),
-                  //             ),
-                  //           ],
-                  //         ),
-                  //         child: CustomIconWidget(
-                  //           iconName: 'notifications',
-                  //           color: AppTheme.lightTheme.primaryColor,
-                  //           size: 24,
-                  //         ),
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
                   Row(
                     children: [
                       WeatherWidget(),
@@ -898,7 +670,7 @@ class _HomeDashboardState extends State<HomeDashboard>
     return GestureDetector(
       onTap: () {
         setState(() {
-          _currentCategory = category; // Update the current category
+          _currentCategory = category;
         });
         print('Category tapped: $category');
       },
@@ -969,10 +741,33 @@ class _HomeDashboardState extends State<HomeDashboard>
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 4.w),
             child: StreamBuilder<List<String>>(
-              stream: fetchCategories(), // Fetch all categories
+              stream: fetchCategories(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator();
+                  return SizedBox(
+                    height: 5.h,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 5,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 2.w),
+                          child: Shimmer.fromColors(
+                            baseColor: Colors.grey.shade300,
+                            highlightColor: Colors.grey.shade100,
+                            child: Container(
+                              width: 18.w,
+                              height: 5.h,
+                              decoration: BoxDecoration(
+                                color: Colors.grey,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
                 }
 
                 if (snapshot.hasError) {
