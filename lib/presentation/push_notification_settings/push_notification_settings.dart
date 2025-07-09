@@ -34,48 +34,65 @@ class _NotificationScreenState extends State<NotificationScreen> {
     _loadNotifications();
 
     // ✅ Listen to foreground notifications
- FirebaseMessagingService.instance.onNotificationReceived = (title, body) {
-  if (!mounted) return;
-  setState(() {
-    receivedNotifications.insert(
-      0,
-      ReceivedNotification(
-        title: title,
-        body: body,
-        timestamp: DateTime.now(),
-      ),
-    );
-  });
-};
+    FirebaseMessagingService.instance.onNotificationReceived =
+        (title, body) async {
+      if (!mounted) return;
 
+      // Save to Firestore
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('user_profiles')
+            .doc(user.uid)
+            .collection('notifications')
+            .add({
+          'title': title,
+          'body': body,
+          'isRead': false,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+
+      setState(() {
+        receivedNotifications.insert(
+          0,
+          ReceivedNotification(
+            title: title,
+            body: body,
+            timestamp: DateTime.now(),
+          ),
+        );
+      });
+    };
   }
 
   // Load notifications from local storage
-void _loadNotifications() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+  void _loadNotifications() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  final snapshot = await FirebaseFirestore.instance
-      .collection('user_profiles') // 🛠️ энэ мөрийг users → user_profiles болго
-      .doc(user.uid)
-      .collection('notifications')
-      .orderBy('timestamp', descending: true)
-      .get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection(
+            'user_profiles') // 🛠️ энэ мөрийг users → user_profiles болго
+        .doc(user.uid)
+        .collection('notifications')
+        .orderBy('timestamp', descending: true)
+        .get();
 
-  final notifications = snapshot.docs.map((doc) {
-    final data = doc.data();
-    return ReceivedNotification(
-      title: data['title'] ?? '',
-      body: data['body'] ?? '',
-      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    );
-  }).toList();
+    final notifications = snapshot.docs.map((doc) {
+      final data = doc.data();
+      return ReceivedNotification(
+        title: data['title'] ?? '',
+        body: data['body'] ?? '',
+        timestamp:
+            (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      );
+    }).toList();
 
-  setState(() {
-    receivedNotifications = notifications;
-  });
-}
-
+    setState(() {
+      receivedNotifications = notifications;
+    });
+  }
 
   String formatTime(DateTime dateTime) {
     final now = DateTime.now();

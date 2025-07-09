@@ -393,6 +393,7 @@ class _HomeDashboardState extends State<HomeDashboard>
         .limit(10)
         .get();
 
+    print("Loaded ${snapshot.docs.length} notifications");
     setState(() {
       postedTrips = snapshot.docs.map((doc) {
         final data = doc.data();
@@ -452,7 +453,7 @@ class _HomeDashboardState extends State<HomeDashboard>
           .collection('notifications')
           .add({
         'title': title,
-        'message': message,
+        'body': message,
         'isRead': false,
         'timestamp': FieldValue.serverTimestamp(),
       });

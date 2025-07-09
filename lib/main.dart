@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 🆕
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sizer/sizer.dart';
 
 import 'package:travelmate/config_loader.dart';
@@ -20,28 +20,33 @@ void main() async {
 
   await FirebaseMessagingService.instance.initFCM();
   await Config.load();
-final prefs = await SharedPreferences.getInstance();
-final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+  final prefs = await SharedPreferences.getInstance();
+  final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
 
-User? currentUser = FirebaseAuth.instance.currentUser;
+  User? currentUser = FirebaseAuth.instance.currentUser;
 
-// 🔄 Firebase хэрэглэгчийг шинэчлэх
-if (currentUser != null) {
-  await currentUser.reload(); // 🆕 refresh user
-  currentUser = FirebaseAuth.instance.currentUser; // update object
-}
+  // ✅ Алдаанаас хамгаалж currentUser.reload хийх
+  try {
+    if (currentUser != null) {
+      await currentUser.reload();
+      currentUser = FirebaseAuth.instance.currentUser;
+    }
+  } catch (e) {
+    debugPrint('User reload failed: $e');
+    currentUser = null; // 👈 устгагдсан хэрэглэгч байж болно
+  }
 
-String initialRoute;
+  String initialRoute;
 
-if (!hasSeenOnboarding) {
-  initialRoute = AppRoutes.onboardingFlow;
-} else if (currentUser != null && currentUser.emailVerified) {
-  initialRoute = AppRoutes.homeDashboard;
-} else {
-  initialRoute = AppRoutes.userLogin;
-}
+  if (!hasSeenOnboarding) {
+    initialRoute = AppRoutes.onboardingFlow;
+  } else if (currentUser != null && currentUser.emailVerified) {
+    initialRoute = AppRoutes.homeDashboard;
+  } else {
+    initialRoute = AppRoutes.userLogin;
+  }
 
-  // UI error catcher
+  // 🔧 UI алдаа catcher
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return CustomErrorWidget(errorDetails: details);
   };
@@ -52,7 +57,6 @@ if (!hasSeenOnboarding) {
 
   runApp(MyApp(initialRoute: initialRoute));
 }
-
 
 class MyApp extends StatelessWidget {
   final String initialRoute;

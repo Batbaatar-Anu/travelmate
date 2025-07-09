@@ -41,7 +41,10 @@ class FirebaseAuthService {
       await credential.user?.sendEmailVerification();
 
       // ✅ Save profile to Firestore
-      await _firestore.collection('user_profiles').doc(credential.user!.uid).set({
+      await _firestore
+          .collection('user_profiles')
+          .doc(credential.user!.uid)
+          .set({
         'email': email,
         'full_name': fullName,
         'phone': phone,
@@ -98,7 +101,10 @@ class FirebaseAuthService {
   Future<Map<String, dynamic>?> getUserProfile() async {
     if (currentUser == null) return null;
 
-    final doc = await _firestore.collection('user_profiles').doc(currentUser!.uid).get();
+    final doc = await _firestore
+        .collection('user_profiles')
+        .doc(currentUser!.uid)
+        .get();
     return doc.exists ? doc.data() : null;
   }
 
@@ -121,11 +127,15 @@ class FirebaseAuthService {
       if (phone != null) 'phone': phone,
       if (dateOfBirth != null) 'date_of_birth': dateOfBirth.toIso8601String(),
       if (avatarUrl != null) 'avatar_url': avatarUrl,
-      if (notificationPreferences != null) 'notification_preferences': notificationPreferences,
+      if (notificationPreferences != null)
+        'notification_preferences': notificationPreferences,
     };
 
     if (updateData.isNotEmpty) {
-      await _firestore.collection('user_profiles').doc(currentUser!.uid).update(updateData);
+      await _firestore
+          .collection('user_profiles')
+          .doc(currentUser!.uid)
+          .update(updateData);
     }
   }
 
