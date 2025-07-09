@@ -82,24 +82,24 @@ class TripCountdownWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-                  decoration: BoxDecoration(
-                    color: AppTheme.lightTheme.colorScheme.secondary,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    "Upcoming Trip",
-                    style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            // Row(
+            //   children: [
+            //     Container(
+            //       padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+            //       decoration: BoxDecoration(
+            //         color: AppTheme.lightTheme.colorScheme.secondary,
+            //         borderRadius: BorderRadius.circular(20),
+            //       ),
+            //       child: Text(
+            //         "Upcoming Trip",
+            //         style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
+            //           color: Colors.white,
+            //           fontWeight: FontWeight.w600,
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
             SizedBox(height: 2.h),
             Text(
               destination,

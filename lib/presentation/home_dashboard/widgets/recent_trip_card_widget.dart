@@ -8,7 +8,7 @@ class RecentTripCardWidget extends StatelessWidget {
   final String destination;
   final String imageUrl;
   final String date;
-  final String status;
+
   final double rating;
   final List<String> highlights;
   final VoidCallback onTap;
@@ -21,7 +21,6 @@ class RecentTripCardWidget extends StatelessWidget {
     required this.destination,
     required this.imageUrl,
     required this.date,
-    required this.status,
     required this.rating,
     required this.highlights,
     required this.onTap,
@@ -74,26 +73,6 @@ class RecentTripCardWidget extends StatelessWidget {
               width: double.infinity,
               height: 12.h,
               fit: BoxFit.cover,
-            ),
-          ),
-          Positioned(
-            top: 1.h,
-            right: 2.w,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
-              decoration: BoxDecoration(
-                color: status == "Completed"
-                    ? AppTheme.lightTheme.colorScheme.tertiary
-                    : AppTheme.lightTheme.colorScheme.secondary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                status,
-                style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
             ),
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:sizer/sizer.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
@@ -140,7 +141,6 @@ class _HomeDashboardState extends State<HomeDashboard>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _getUserProfile();
-    _fetchPostedTrips();
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -188,35 +188,17 @@ class _HomeDashboardState extends State<HomeDashboard>
     }
   }
 
-  Future<void> _fetchPostedTrips() async {
-    final snapshot = await FirebaseFirestore.instance
+  Stream<List<Map<String, dynamic>>> streamPostedTrips() {
+    return FirebaseFirestore.instance
         .collection('trips')
-        .orderBy('created_at', descending: true)
-        .limit(10)
-        .get();
-
-    print("Loaded ${snapshot.docs.length} notifications");
-    setState(() {
-      postedTrips = snapshot.docs.map((doc) {
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
         final data = doc.data();
-        final Timestamp createdAt = data['created_at'] ?? Timestamp.now();
-        final createdDate = createdAt.toDate();
-
-        final formattedDate =
-            "${createdDate.year}-${createdDate.month.toString().padLeft(2, '0')}-${createdDate.day.toString().padLeft(2, '0')}";
-
         return {
+          ...data,
           'id': doc.id,
-          'destination': data['destination'] ?? '',
-          'title': data['title'] ?? 'Untitled Trip',
-          'image': (data['media_url'] != null &&
-                  data['media_url'].toString().isNotEmpty)
-              ? data['media_url']
-              : 'https://via.placeholder.com/300',
-          'date': formattedDate,
-          'status': 'Upcoming',
-          'rating': data['rating'] ?? 0.0,
-          'highlights': List<String>.from(data['highlights'] ?? []),
         };
       }).toList();
     });
@@ -629,34 +611,86 @@ class _HomeDashboardState extends State<HomeDashboard>
               ),
             ),
             SizedBox(height: 2.h),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: streamPostedTrips(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            // ✅ Auto height list (shrinkWrap)
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: postedTrips.length,
-              itemBuilder: (context, index) {
-                final trip = postedTrips[index];
-                return Padding(
-                  padding: EdgeInsets.only(bottom: 2.h),
-                  child: RecentTripCardWidget(
-                    title: trip['title'] ?? 'Untitled',
-                    destination: trip['destination'] ?? '',
-                    imageUrl: trip['image'] ?? '',
-                    date: trip['date'] ?? '',
-                    status: trip['status'] ?? 'Upcoming',
-                    rating: trip['rating'] ?? 0.0,
-                    highlights: trip['highlights'] ?? [],
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '',
-                        arguments: trip['id'],
-                      );
-                    },
-                    onShare: () {},
-                    onEdit: () {},
-                  ),
+                if (snapshot.hasError) {
+                  return const Center(
+                      child: Text("Аяллуудыг ачааллаж чадсангүй."));
+                }
+
+                final trips = snapshot.data ?? [];
+                if (trips.isEmpty) {
+                  return const Center(child: Text("Сүүлийн аялал алга байна."));
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: trips.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 2.h),
+                  itemBuilder: (context, index) {
+                    final trip = trips[index];
+
+                    // ✅ Зураг fallback
+                    final imageUrl = trip['image']?.toString() ??
+                        trip['heroImage']?.toString() ??
+                        ((trip['photos'] is List && trip['photos'].isNotEmpty)
+                            ? trip['photos'][0].toString()
+                            : 'https://via.placeholder.com/300');
+
+                    // ✅ Огноо форматлах
+                    String formattedDate = '';
+                    final dateField = trip['date'];
+                    if (dateField is Timestamp) {
+                      formattedDate =
+                          DateFormat('yyyy-MM-dd').format(dateField.toDate());
+                    } else if (dateField is String) {
+                      formattedDate = dateField;
+                    }
+
+                    return RecentTripCardWidget(
+                      title: trip['title']?.toString() ?? 'No title',
+                      destination: trip['destination']?.toString() ??
+                          trip['subtitle']?.toString() ??
+                          '',
+                      imageUrl: imageUrl,
+                      date: formattedDate,
+                      rating: trip['rating'] is num
+                          ? (trip['rating'] as num).toDouble()
+                          : 0.0,
+                      highlights: trip['highlights'] is List
+                          ? List<String>.from(trip['highlights'])
+                          : [],
+                      onTap: () {
+                        final tripId = trip['id']?.toString();
+                        if (tripId != null && tripId.isNotEmpty) {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.tripDetail,
+                            arguments: trip,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Аяллын ID олдсонгүй.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      onShare: () {
+                        // TODO: Share logic
+                      },
+                      onEdit: () {
+                        // TODO: Edit logic
+                      },
+                    );
+                  },
                 );
               },
             ),

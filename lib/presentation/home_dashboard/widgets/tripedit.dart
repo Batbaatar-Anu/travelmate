@@ -21,23 +21,21 @@ class _TripEditScreenState extends State<TripEditScreen> {
   late TextEditingController _titleController;
   late TextEditingController _destinationController;
   late TextEditingController _descriptionController;
-  late TextEditingController _highlightsController;
-  late TextEditingController _latitudeController;
-  late TextEditingController _longitudeController;
+  late TextEditingController _imageUrlController;
 
   File? _selectedMedia;
-  String? _existingImageUrl;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.trip['title']);
-    _destinationController = TextEditingController(text: widget.trip['destination']);
-    _descriptionController = TextEditingController(text: widget.trip['description'] ?? '');
-    _highlightsController = TextEditingController(text: (widget.trip['highlights'] as List?)?.join(", ") ?? '');
-    _latitudeController = TextEditingController(text: widget.trip['coordinates']?['latitude']?.toString() ?? '');
-    _longitudeController = TextEditingController(text: widget.trip['coordinates']?['longitude']?.toString() ?? '');
-    _existingImageUrl = widget.trip['heroImage'];
+    _destinationController =
+        TextEditingController(text: widget.trip['destination']);
+    _descriptionController =
+        TextEditingController(text: widget.trip['description'] ?? '');
+    _imageUrlController =
+        TextEditingController(text: widget.trip['heroImage'] ?? '');
   }
 
   Future<void> _pickMedia() async {
@@ -50,19 +48,24 @@ class _TripEditScreenState extends State<TripEditScreen> {
 
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
 
-    String? imageUrl = _existingImageUrl;
+    String? imageUrl = _imageUrlController.text.trim();
+
     if (_selectedMedia != null) {
       try {
         final user = FirebaseAuth.instance.currentUser;
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${user?.uid}.jpg';
-        final ref = FirebaseStorage.instance.ref().child('trip_media/$fileName');
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_${user?.uid}.jpg';
+        final ref =
+            FirebaseStorage.instance.ref().child('trip_media/$fileName');
         final snapshot = await ref.putFile(_selectedMedia!);
         if (snapshot.state == TaskState.success) {
           imageUrl = await ref.getDownloadURL();
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error uploading image: $e')));
+        _showSnackBar('Зураг байршуулахад алдаа гарлаа: $e', isError: true);
+        setState(() => _isLoading = false);
         return;
       }
     }
@@ -72,46 +75,111 @@ class _TripEditScreenState extends State<TripEditScreen> {
       'destination': _destinationController.text.trim(),
       'description': _descriptionController.text.trim(),
       'heroImage': imageUrl,
-      'coordinates': {
-        'latitude': double.tryParse(_latitudeController.text.trim()) ?? 0.0,
-        'longitude': double.tryParse(_longitudeController.text.trim()) ?? 0.0,
-      },
-      'highlights': _highlightsController.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
       'updated_at': FieldValue.serverTimestamp(),
     };
 
-    await FirebaseFirestore.instance.collection('trips').doc(widget.tripId).update(updateData);
+    try {
+      await FirebaseFirestore.instance
+          .collection('trips')
+          .doc(widget.tripId)
+          .update(updateData);
+      _showSnackBar('Аялал амжилттай шинэчлэгдлээ!', isError: false);
+      if (context.mounted) Navigator.pop(context, true);
+    } catch (e) {
+      _showSnackBar('Шинэчлэх үед алдаа гарлаа: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Аялал шинэчлэгдлээ')));
-    if (context.mounted) Navigator.pop(context, true);
+  void _showSnackBar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(isError ? Icons.error : Icons.check_circle,
+                color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  Widget _buildInput(
+    String title,
+    TextEditingController controller, {
+    required String hint,
+    bool requiredField = false,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+        SizedBox(height: 0.5.h),
+        TextFormField(
+          controller: controller,
+          validator: requiredField
+              ? (val) =>
+                  val == null || val.isEmpty ? '$title шаардлагатай' : null
+              : null,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Аялал засах')),
-      body: Padding(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: const Text('Аялал засах', style: TextStyle(color: Colors.black)),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 1,
+        leading: BackButton(color: Colors.black),
+      ),
+      body: SingleChildScrollView(
         padding: EdgeInsets.all(4.w),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(labelText: 'Аяллын нэр'),
-                validator: (val) => val == null || val.isEmpty ? 'Нэр оруулна уу' : null,
-              ),
+              _buildInput("Аяллын нэр", _titleController,
+                  hint: "Жишээ: Хөвсгөл", requiredField: true),
               SizedBox(height: 2.h),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 4,
-                decoration: InputDecoration(labelText: 'Тайлбар'),
-              ),
+              _buildInput("Тайлбар", _descriptionController,
+                  hint: "Тайлбар бичнэ үү", maxLines: 4),
+              SizedBox(height: 2.h),
+              _buildInput("Зургийн URL", _imageUrlController,
+                  hint: "https://...", keyboardType: TextInputType.url),
               SizedBox(height: 2.h),
               _selectedMedia != null
                   ? Stack(
                       children: [
-                        Image.file(_selectedMedia!),
+                        Image.file(_selectedMedia!, height: 150),
                         Positioned(
                           top: 8,
                           right: 8,
@@ -119,59 +187,44 @@ class _TripEditScreenState extends State<TripEditScreen> {
                             radius: 14,
                             backgroundColor: Colors.black54,
                             child: IconButton(
-                              icon: Icon(Icons.close, color: Colors.white, size: 16),
-                              onPressed: () => setState(() => _selectedMedia = null),
+                              icon: const Icon(Icons.close,
+                                  color: Colors.white, size: 16),
+                              onPressed: () =>
+                                  setState(() => _selectedMedia = null),
                             ),
                           ),
                         ),
                       ],
                     )
-                  : _existingImageUrl != null
-                      ? Image.network(_existingImageUrl!, height: 150)
+                  : _imageUrlController.text.isNotEmpty
+                      ? Image.network(_imageUrlController.text, height: 150)
                       : ElevatedButton.icon(
                           onPressed: _pickMedia,
-                          icon: Icon(Icons.image),
-                          label: Text("Зураг нэмэх"),
+                          icon: const Icon(Icons.image),
+                          label: const Text("Зураг нэмэх"),
                         ),
               SizedBox(height: 2.h),
-              TextFormField(
-                controller: _destinationController,
-                decoration: InputDecoration(labelText: 'Очих газар'),
-                validator: (val) => val == null || val.isEmpty ? 'Газрын нэр оруулна уу' : null,
-              ),
-              SizedBox(height: 2.h),
-              TextFormField(
-                controller: _highlightsController,
-                decoration: InputDecoration(labelText: 'Онцлох зүйлс (таслалаар тусгаарлана)'),
-              ),
-              SizedBox(height: 2.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _latitudeController,
-                      decoration: InputDecoration(labelText: 'Өргөрөг'),
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    ),
-                  ),
-                  SizedBox(width: 2.w),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _longitudeController,
-                      decoration: InputDecoration(labelText: 'Уртраг'),
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    ),
-                  ),
-                ],
-              ),
+              _buildInput("Очих газар", _destinationController,
+                  hint: "Жишээ: Улаанбаатар", requiredField: true),
               SizedBox(height: 4.h),
-              ElevatedButton.icon(
-                onPressed: _saveChanges,
-                icon: Icon(Icons.save),
-                label: Text("Хадгалах"),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 1.5.h),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveChanges,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text("Хадгалах"),
                 ),
               ),
             ],
@@ -179,5 +232,14 @@ class _TripEditScreenState extends State<TripEditScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _destinationController.dispose();
+    _descriptionController.dispose();
+    _imageUrlController.dispose();
+    super.dispose();
   }
 }
