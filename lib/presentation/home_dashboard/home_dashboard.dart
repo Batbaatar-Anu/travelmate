@@ -407,24 +407,21 @@ class _HomeDashboardState extends State<HomeDashboard>
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('user_profiles') // ✅ Зөв collection path
+          .collection('user_profiles')
           .doc(user.uid)
           .collection('notifications')
           .where('isRead', isEqualTo: false)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildNotificationBaseIcon(); // loading үед badge байхгүй icon
+          return _buildNotificationBaseIcon();
         }
 
         final unreadCount = snapshot.data?.docs.length ?? 0;
 
         return GestureDetector(
           onTap: () async {
-            // ✅ Mark all as read
             await markAllNotificationsAsRead(user.uid);
-
-            // ✅ Navigate to notification detail screen
             if (context.mounted) {
               Navigator.pushNamed(context, '/push-notification-settings');
             }
@@ -536,7 +533,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                     children: [
                       WeatherWidget(),
                       SizedBox(width: 2.w),
-                      _buildNotificationIcon(), // → badge бүхий icon энд
+                      _buildNotificationIcon(), 
                     ],
                   ),
                 ],

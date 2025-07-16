@@ -3,10 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/TripDetailScreen.dart';
+import 'package:travelmate/presentation/home_dashboard/widgets/profiletrips.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/tripedit.dart';
 import 'package:travelmate/routes/app_routes.dart';
 import 'package:travelmate/theme/app_theme.dart';
 import 'package:travelmate/services/firebase_auth_service.dart';
+import 'package:shimmer/shimmer.dart';
 
 class Post {
   final String id;
@@ -40,7 +42,7 @@ class Post {
     );
   }
 }
-
+bool _initialLoadDone = false;
 Future<int> fetchTripCount(User? user) async {
   if (user == null) return 0;
 
@@ -57,64 +59,94 @@ Future<int> fetchTripCount(User? user) async {
   }
 }
 
-
 Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
-  if (user == null) {
+  if (user == null || user.uid.isEmpty) {
+    debugPrint("⚠️ fetchUserTrips: хэрэглэгч алга.");
     return Stream.value([]);
   }
 
-  final tripsRef = FirebaseFirestore.instance
-      .collection('trips')
-      .where('user_id', isEqualTo: user.uid)
-      .orderBy('date', descending: true);
+  try {
+    // Remove orderBy to avoid filtering out documents without 'date' field
+    final tripsRef = FirebaseFirestore.instance
+        .collection('trips')
+        .where('user_id', isEqualTo: user.uid);
 
-  return tripsRef.snapshots().map((snapshot) {
-    return snapshot.docs.map((doc) {
-      final data = doc.data() as Map<String, dynamic>;
+    return tripsRef.snapshots().map((snapshot) {
+      debugPrint("📥 Realtime trips received: ${snapshot.docs.length}");
+      
+      final tripsList = snapshot.docs.map((doc) {
+        final data = doc.data();
+        
+        // Handle different date field possibilities
+        DateTime createdAt;
+        if (data['date'] is Timestamp) {
+          createdAt = (data['date'] as Timestamp).toDate();
+        } else if (data['createdAt'] is Timestamp) {
+          createdAt = (data['createdAt'] as Timestamp).toDate();
+        } else if (data['created_at'] is Timestamp) {
+          createdAt = (data['created_at'] as Timestamp).toDate();
+        } else {
+          createdAt = DateTime.now();
+        }
 
-      final createdAt = data['date'] is Timestamp
-          ? (data['date'] as Timestamp).toDate()
-          : DateTime.now();
+        final formattedDate = 
+            "${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}";
 
-      final formattedDate =
-          "${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}";
+        // Image handling with multiple fallbacks
+        final image = data['media_url']?.toString().isNotEmpty == true
+            ? data['media_url']
+            : data['heroImage']?.toString().isNotEmpty == true
+                ? data['heroImage']
+                : data['image']?.toString().isNotEmpty == true
+                    ? data['image']
+                    : null;
 
-      final image = (data['media_url']?.toString().isNotEmpty ?? false)
-          ? data['media_url']
-          : (data['heroImage']?.toString().isNotEmpty ?? false)
-              ? data['heroImage']
-              : (data['image']?.toString().isNotEmpty ?? false)
-                  ? data['image']
-                  : null;
+        // Highlights handling
+        final highlights = (data['highlights'] is List)
+            ? List<String>.from(
+                (data['highlights'] as List).whereType<String>(),
+              )
+            : <String>[];
 
-      // highlights-г шалгаж баталгаажуулж байна
-      List<String> highlights = [];
-      if (data['highlights'] is List) {
-        highlights = List<String>.from(
-          (data['highlights'] as List).whereType<String>(),
-        );
-      }
+        return {
+          'id': doc.id,
+          'title': data['title'] ?? 'Untitled',
+          'destination': data['destination'] ?? 'Unknown',
+          'image': image,
+          'date': formattedDate,
+          'status': data['status'] ?? 'Upcoming',
+          'rating': (data['rating'] is num) ? data['rating'].toDouble() : 0.0,
+          'highlights': highlights,
+          'user_id': data['user_id'] ?? '',
+          'createdAt': createdAt, // Keep original DateTime for sorting
+        };
+      }).toList();
 
-      return {
-        'id': doc.id,
-        'title': data['title'] ?? 'Untitled',
-        'destination': data['destination'] ?? 'Unknown',
-        'image': image,
-        'date': formattedDate,
-        'status': data['status'] ?? 'Upcoming',
-        'rating': (data['rating'] is num) ? data['rating'].toDouble() : 0.0,
-        'highlights': highlights,
-        'user_id': data['user_id'] ?? '',
-      };
-    }).toList();
-  }).handleError((e, stackTrace) {
-    debugPrint("🔥 [Trips Stream Error]: $e");
-    return [];
-  });
+      // Sort by date in Dart instead of Firestore to avoid filtering issues
+      tripsList.sort((a, b) => (b['createdAt'] as DateTime).compareTo(a['createdAt'] as DateTime));
+      
+      // Remove the createdAt field from final result to match your original structure
+      return tripsList.map((trip) {
+        final Map<String, dynamic> result = Map.from(trip);
+        result.remove('createdAt');
+        return result;
+      }).toList();
+
+    }).handleError((e, stackTrace) {
+      debugPrint("🔥 [fetchUserTrips Stream алдаа]: $e");
+      debugPrint("Stack trace: $stackTrace");
+      return <Map<String, dynamic>>[];
+    });
+
+  } catch (e, stackTrace) {
+    debugPrint("❌ [fetchUserTrips try-catch алдаа]: $e");
+    debugPrint("Stack trace: $stackTrace");
+    return Stream.value([]);
+  }
 }
 
 Widget buildProfileTab(BuildContext context, User? currentUser) {
-  if (currentUser == null) {
+  if (currentUser == null || currentUser.uid.isEmpty) {
     return SliverToBoxAdapter(
       child: Center(
         child: Padding(
@@ -143,9 +175,7 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(40),
-            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
             boxShadow: [
               BoxShadow(
                 color: const Color.fromARGB(255, 178, 178, 178).withOpacity(0.2),
@@ -184,7 +214,6 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
                   currentUser.email ?? 'No email',
                   style: TextStyle(fontSize: 10.sp, color: Colors.grey[700]),
                 ),
-
                 SizedBox(height: 3.h),
 
                 // 📊 Stats Row
@@ -201,7 +230,7 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
           ),
         ),
 
-        // 🔸 My Trips Title
+        // 🔸 My Trips Section (only if user exists)
         SizedBox(height: 2.h),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
@@ -215,9 +244,7 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
             ],
           ),
         ),
-
-        // 🔹 Trip List Section
-        _buildUserTripsSection(currentUser),
+        ProfileTripsSection(user: currentUser),
       ],
     ),
   );
@@ -305,194 +332,6 @@ Widget _buildStat(String label, String count) {
           fontSize: 10.sp,
           color: Colors.grey[600] ?? Colors.grey,
         ),
-      ),
-    ],
-  );
-}
-
-Widget _buildUserTripsSection(User? user) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(height: 1.h),
-
-      StreamBuilder<List<Map<String, dynamic>>>(
-        stream: fetchUserTrips(user),
-        builder: (context, snapshot) {
-          // 🔄 Loading state
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 6.h),
-              child: Center(
-                child: Column(
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 2.h),
-                    Text("Аяллуудыг ачааллаж байна...", style: TextStyle(fontSize: 12.sp)),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          // ❌ Error state
-          if (snapshot.hasError) {
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 6.h),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.error_outline, size: 12.w, color: Colors.red),
-                    SizedBox(height: 2.h),
-                    Text("Алдаа гарлаа. Сүлжээг шалгана уу.",
-                        style: TextStyle(fontSize: 12.sp)),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          // 📭 No data state
-          final trips = snapshot.data ?? [];
-          if (trips.isEmpty) {
-            return Padding(
-              padding: EdgeInsets.symmetric(vertical: 6.h),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.travel_explore, size: 12.w, color: Colors.grey),
-                    SizedBox(height: 2.h),
-                    Text(
-                      "Одоогоор нэмсэн аялал алга байна.",
-                      style: TextStyle(fontSize: 12.sp),
-                    ),
-                    SizedBox(height: 1.h),
-                    Text(
-                      "Доорх ➕ товчоор аялал нэмээрэй.",
-                      style: TextStyle(fontSize: 10.sp, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          // ✅ Data exists → display trips
-          return ListView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: trips.length,
-            itemBuilder: (context, index) {
-              final trip = trips[index];
-              return Card(
-                child: ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: trip['image'] != null && trip['image'].toString().isNotEmpty
-                        ? Image.network(
-                            trip['image'],
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset(
-                                'assets/images/no-image.jpg',
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                              );
-                            },
-                          )
-                        : Image.asset(
-                            'assets/images/no-image.jpg',
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                  title: Text(trip['title']),
-                  subtitle: Text("${trip['destination']} • ${trip['date']}"),
-                  trailing: trip['user_id'] == FirebaseAuth.instance.currentUser?.uid
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TripEditScreen(
-                                      trip: trip,
-                                      tripId: trip['id'],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text("Delete Trip"),
-                                    content: const Text("Are you sure you want to delete this trip?"),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(ctx, false),
-                                        child: const Text("Cancel"),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () => Navigator.pop(ctx, true),
-                                        child: const Text("Delete"),
-                                      ),
-                                    ],
-                                  ),
-                                );
-
-                                if (confirm == true) {
-                                  await FirebaseFirestore.instance
-                                      .collection('trips')
-                                      .doc(trip['id'])
-                                      .delete();
-
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text("Trip deleted successfully"),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                            ),
-                          ],
-                        )
-                      : null,
-                  onTap: () {
-                    final tripId = trip['id']?.toString();
-                    if (tripId != null && tripId.isNotEmpty) {
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.tripDetail,
-                        arguments: trip,
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('empty.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                ),
-              );
-            },
-          );
-        },
       ),
     ],
   );
