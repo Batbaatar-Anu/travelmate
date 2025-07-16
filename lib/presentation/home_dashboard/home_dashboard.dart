@@ -533,7 +533,7 @@ class _HomeDashboardState extends State<HomeDashboard>
                     children: [
                       WeatherWidget(),
                       SizedBox(width: 2.w),
-                      _buildNotificationIcon(), 
+                      _buildNotificationIcon(),
                     ],
                   ),
                 ],
@@ -593,107 +593,107 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-Widget _buildRecentTripsSection() {
-  return SliverToBoxAdapter(
-    child: Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Recent Trips",
-            style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.sp,
+  Widget _buildRecentTripsSection() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Recent Trips",
+              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
             ),
-          ),
-          SizedBox(height: 2.h),
-          StreamBuilder<List<Map<String, dynamic>>>(
-            stream: streamPostedTrips(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildShimmerRecentTrips();
-              }
+            SizedBox(height: 2.h),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: streamPostedTrips(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildShimmerRecentTrips();
+                }
 
-              if (snapshot.hasError) {
-                return const Center(
-                    child: Text("Аяллуудыг ачааллаж чадсангүй."));
-              }
+                if (snapshot.hasError) {
+                  return const Center(
+                      child: Text("Аяллуудыг ачааллаж чадсангүй."));
+                }
 
-              final trips = snapshot.data ?? [];
-              if (trips.isEmpty) {
-                return const Center(child: Text("Сүүлийн аялал алга байна."));
-              }
+                final trips = snapshot.data ?? [];
+                if (trips.isEmpty) {
+                  return const Center(child: Text("Сүүлийн аялал алга байна."));
+                }
 
-              return ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: trips.length,
-                separatorBuilder: (_, __) => SizedBox(height: 2.h),
-                itemBuilder: (context, index) {
-                  final trip = trips[index];
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: trips.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 2.h),
+                  itemBuilder: (context, index) {
+                    final trip = trips[index];
 
-                  final imageUrl = trip['image']?.toString() ??
-                      trip['heroImage']?.toString() ??
-                      ((trip['photos'] is List &&
-                              trip['photos'].isNotEmpty)
-                          ? trip['photos'][0].toString()
-                          : 'https://via.placeholder.com/300');
+                    final imageUrl = trip['image']?.toString() ??
+                        trip['heroImage']?.toString() ??
+                        ((trip['photos'] is List && trip['photos'].isNotEmpty)
+                            ? trip['photos'][0].toString()
+                            : 'https://via.placeholder.com/300');
 
-                  String formattedDate = '';
-                  final dateField = trip['date'];
-                  if (dateField is Timestamp) {
-                    formattedDate = DateFormat('yyyy-MM-dd').format(dateField.toDate());
-                  } else if (dateField is String) {
-                    formattedDate = dateField;
-                  }
+                    String formattedDate = '';
+                    final dateField = trip['date'];
+                    if (dateField is Timestamp) {
+                      formattedDate =
+                          DateFormat('yyyy-MM-dd').format(dateField.toDate());
+                    } else if (dateField is String) {
+                      formattedDate = dateField;
+                    }
 
-                  return RecentTripCardWidget(
-                    title: trip['title']?.toString() ?? 'No title',
-                    destination: trip['destination']?.toString() ??
-                        trip['subtitle']?.toString() ??
-                        '',
-                    imageUrl: imageUrl,
-                    date: formattedDate,
-                    rating: trip['rating'] is num
-                        ? (trip['rating'] as num).toDouble()
-                        : 0.0,
-                    highlights: trip['highlights'] is List
-                        ? List<String>.from(trip['highlights'])
-                        : [],
-                    onTap: () {
-                      final tripId = trip['id']?.toString();
-                      if (tripId != null && tripId.isNotEmpty) {
-                        Navigator.pushNamed(
-                          context,
-                          AppRoutes.tripDetail,
-                          arguments: trip,
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Аяллын ID олдсонгүй.'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    },
-                    onShare: () {
-                      // TODO: Share logic
-                    },
-                    onEdit: () {
-                      // TODO: Edit logic
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        ],
+                    return RecentTripCardWidget(
+                      title: trip['title']?.toString() ?? 'No title',
+                      destination: trip['destination']?.toString() ??
+                          trip['subtitle']?.toString() ??
+                          '',
+                      imageUrl: imageUrl,
+                      date: formattedDate,
+                      rating: trip['rating'] is num
+                          ? (trip['rating'] as num).toDouble()
+                          : 0.0,
+                      highlights: trip['highlights'] is List
+                          ? List<String>.from(trip['highlights'])
+                          : [],
+                      onTap: () {
+                        final tripId = trip['id']?.toString();
+                        if (tripId != null && tripId.isNotEmpty) {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.tripDetail,
+                            arguments: trip,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Аяллын ID олдсонгүй.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      onShare: () {
+                        // TODO: Share logic
+                      },
+                      onEdit: () {
+                        // TODO: Edit logic
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildCategoryFilter(String category, bool isSelected) {
     return GestureDetector(
@@ -730,162 +730,160 @@ Widget _buildRecentTripsSection() {
     );
   }
 
- Widget _buildRecommendedDestinationsSection() {
-  return SliverToBoxAdapter(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 3.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  "Recommended Destinations",
-                  style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12.sp,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ),
-              TextButton(
-                onPressed: () =>
-                    Navigator.pushNamed(context, '/all-destinations'),
-                child: Text(
-                  "View All",
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w500,
+  Widget _buildRecommendedDestinationsSection() {
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 3.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    "Recommended Destinations",
+                    style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.sp,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
-              ),
-            ],
+                TextButton(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/all-destinations'),
+                  child: Text(
+                    "View All",
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        SizedBox(height: 1.h),
+          SizedBox(height: 1.h),
 
-        // 🔹 Category chips
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
-          child: StreamBuilder<List<String>>(
-            stream: fetchCategories(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+          // 🔹 Category chips
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: StreamBuilder<List<String>>(
+              stream: fetchCategories(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return SizedBox(
+                    height: 5.h,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 5,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 2.w),
+                          child: Shimmer.fromColors(
+                            baseColor: Colors.grey.shade300,
+                            highlightColor: Colors.grey.shade100,
+                            child: Container(
+                              width: 18.w,
+                              height: 5.h,
+                              decoration: BoxDecoration(
+                                color: Colors.grey,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Text('Error loading categories');
+                }
+
+                final categories = snapshot.data ?? [];
+
                 return SizedBox(
                   height: 5.h,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: 5,
+                    itemCount: categories.length,
                     itemBuilder: (context, index) {
-                      return Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 2.w),
-                        child: Shimmer.fromColors(
-                          baseColor: Colors.grey.shade300,
-                          highlightColor: Colors.grey.shade100,
-                          child: Container(
-                            width: 18.w,
-                            height: 5.h,
-                            decoration: BoxDecoration(
-                              color: Colors.grey,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      );
+                      final category = categories[index];
+                      final isSelected = _currentCategory == category;
+                      return _buildCategoryFilter(category, isSelected);
                     },
                   ),
                 );
-              }
+              },
+            ),
+          ),
 
-              if (snapshot.hasError) {
-                return Text('Error loading categories');
-              }
+          SizedBox(height: 1.h),
 
-              final categories = snapshot.data ?? [];
+          // 🔹 Destination cards
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _currentCategory == 'All'
+                  ? fetchRecommendedDestinations()
+                  : fetchDestinationsByCategory(_currentCategory),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildShimmerDestinationGrid();
+                }
 
-              return SizedBox(
-                height: 5.h,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: categories.length,
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error loading destinations"));
+                }
+
+                final destinations = snapshot.data ?? [];
+
+                if (destinations.isEmpty) {
+                  return Center(child: Text("No destinations found"));
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: destinations.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 3.w,
+                    mainAxisSpacing: 2.h,
+                    childAspectRatio: 0.8,
+                  ),
                   itemBuilder: (context, index) {
-                    final category = categories[index];
-                    final isSelected = _currentCategory == category;
-                    return _buildCategoryFilter(category, isSelected);
+                    final destination = destinations[index];
+                    return RecommendedDestinationWidget(
+                      name: destination["name"] as String,
+                      imageUrl: destination["image"] as String,
+                      price: destination["price"] as String,
+                      rating: destination["rating"] as double,
+                      duration: destination["duration"] as String,
+                      category: destination["category"] as String,
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/home-detail',
+                        arguments: destination['id'],
+                      ),
+                      isSaved: savedDestinationIds.contains(destination['id']),
+                      onFavoriteToggle: () =>
+                          _toggleSaveDestination(destination['id']),
+                    );
                   },
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
-
-        SizedBox(height: 1.h),
-
-        // 🔹 Destination cards
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
-          child: StreamBuilder<List<Map<String, dynamic>>>(
-            stream: _currentCategory == 'All'
-                ? fetchRecommendedDestinations()
-                : fetchDestinationsByCategory(_currentCategory),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildShimmerDestinationGrid();
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text("Error loading destinations"));
-              }
-
-              final destinations = snapshot.data ?? [];
-
-              if (destinations.isEmpty) {
-                return Center(child: Text("No destinations found"));
-              }
-
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: destinations.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 3.w,
-                  mainAxisSpacing: 2.h,
-                  childAspectRatio: 0.8,
-                ),
-                itemBuilder: (context, index) {
-                  final destination = destinations[index];
-                  return RecommendedDestinationWidget(
-                    name: destination["name"] as String,
-                    imageUrl: destination["image"] as String,
-                    price: destination["price"] as String,
-                    rating: destination["rating"] as double,
-                    duration: destination["duration"] as String,
-                    category: destination["category"] as String,
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      '/home-detail',
-                      arguments: destination['id'],
-                    ),
-                    isSaved:
-                        savedDestinationIds.contains(destination['id']),
-                    onFavoriteToggle: () =>
-                        _toggleSaveDestination(destination['id']),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
+        ],
+      ),
+    );
+  }
 
   // Widget _buildTravelTipsSection() {
   //   return SliverToBoxAdapter(
@@ -1112,96 +1110,96 @@ Widget _buildRecentTripsSection() {
   //   );
   // }
   Widget _buildShimmerDestinationGrid() {
-  return GridView.builder(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    itemCount: 6,
-    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      crossAxisSpacing: 3.w,
-      mainAxisSpacing: 2.h,
-      childAspectRatio: 0.8,
-    ),
-    itemBuilder: (context, index) {
-      return Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: EdgeInsets.all(2.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                height: 14.h,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 6,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 3.w,
+        mainAxisSpacing: 2.h,
+        childAspectRatio: 0.8,
+      ),
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: EdgeInsets.all(2.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 14.h,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-              ),
-              SizedBox(height: 1.h),
-              Container(height: 10, width: 40.w, color: Colors.white),
-              SizedBox(height: 0.5.h),
-              Container(height: 10, width: 30.w, color: Colors.white),
-              SizedBox(height: 0.5.h),
-              Container(height: 10, width: 25.w, color: Colors.white),
-            ],
+                SizedBox(height: 1.h),
+                Container(height: 10, width: 40.w, color: Colors.white),
+                SizedBox(height: 0.5.h),
+                Container(height: 10, width: 30.w, color: Colors.white),
+                SizedBox(height: 0.5.h),
+                Container(height: 10, width: 25.w, color: Colors.white),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
-Widget _buildShimmerRecentTrips() {
-  return ListView.separated(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    itemCount: 3,
-    separatorBuilder: (_, __) => SizedBox(height: 2.h),
-    itemBuilder: (context, index) {
-      return Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: EdgeInsets.all(3.w),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 30.w,
-                height: 12.h,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              SizedBox(width: 4.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(height: 12, width: 50.w, color: Colors.white),
-                    SizedBox(height: 1.h),
-                    Container(height: 10, width: 30.w, color: Colors.white),
-                    SizedBox(height: 1.h),
-                    Container(height: 10, width: 20.w, color: Colors.white),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
+  Widget _buildShimmerRecentTrips() {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 3,
+      separatorBuilder: (_, __) => SizedBox(height: 2.h),
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: EdgeInsets.all(3.w),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 30.w,
+                  height: 12.h,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(height: 12, width: 50.w, color: Colors.white),
+                      SizedBox(height: 1.h),
+                      Container(height: 10, width: 30.w, color: Colors.white),
+                      SizedBox(height: 1.h),
+                      Container(height: 10, width: 20.w, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

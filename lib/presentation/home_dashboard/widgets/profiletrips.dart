@@ -18,10 +18,16 @@ class ProfileTripsSection extends StatelessWidget {
     }
 
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: fetchUserTrips(user),
+      stream: user != null
+          ? fetchUserTrips(user)
+          : Stream.value([]), 
       builder: (context, snapshot) {
         debugPrint("🔄 StreamBuilder state: ${snapshot.connectionState}");
-        
+
+        if (user == null) {
+          return _buildErrorWidget("Хэрэглэгчийн мэдээлэл алга байна.");
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoading();
         }
@@ -40,7 +46,7 @@ class ProfileTripsSection extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
-            // Force refresh by rebuilding the widget
+            // Force refresh by delaying rebuild
             await Future.delayed(const Duration(milliseconds: 500));
           },
           child: ListView.builder(
@@ -68,9 +74,9 @@ class ProfileTripsSection extends StatelessWidget {
                     children: [
                       Text(
                         "${trip['destination'] ?? 'Unknown'} • ${trip['date'] ?? 'No date'}",
-                        style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+                        style:
+                            TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
                       ),
-    
                     ],
                   ),
                   trailing: _buildActions(context, trip),
@@ -89,7 +95,6 @@ class ProfileTripsSection extends StatelessWidget {
       },
     );
   }
-
 
   Widget _buildTripImage(Map<String, dynamic> trip) {
     final imageUrl = trip['image'];
@@ -161,12 +166,14 @@ class ProfileTripsSection extends StatelessWidget {
     );
   }
 
-  Future<void> _showDeleteDialog(BuildContext context, Map<String, dynamic> trip) async {
+  Future<void> _showDeleteDialog(
+      BuildContext context, Map<String, dynamic> trip) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Аяллыг устгах уу?"),
-        content: Text("Та '${trip['title']}' аяллыг бүр мөсөн устгах гэж байна."),
+        content:
+            Text("Та '${trip['title']}' аяллыг бүр мөсөн устгах гэж байна."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -189,7 +196,7 @@ class ProfileTripsSection extends StatelessWidget {
             .collection('trips')
             .doc(trip['id'])
             .delete();
-        
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
