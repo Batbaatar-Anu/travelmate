@@ -57,6 +57,7 @@ Future<int> fetchTripCount(User? user) async {
   }
 }
 
+
 Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
   if (user == null) {
     return Stream.value([]);
@@ -65,11 +66,11 @@ Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
   final tripsRef = FirebaseFirestore.instance
       .collection('trips')
       .where('user_id', isEqualTo: user.uid)
-      .orderBy('date', descending: true); // 🛠 ЗӨВ: 'created_at' биш 'date'
+      .orderBy('date', descending: true);
 
   return tripsRef.snapshots().map((snapshot) {
     return snapshot.docs.map((doc) {
-      final data = doc.data().cast<String, dynamic>();
+      final data = doc.data() as Map<String, dynamic>;
 
       final createdAt = data['date'] is Timestamp
           ? (data['date'] as Timestamp).toDate()
@@ -86,6 +87,14 @@ Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
                   ? data['image']
                   : null;
 
+      // highlights-г шалгаж баталгаажуулж байна
+      List<String> highlights = [];
+      if (data['highlights'] is List) {
+        highlights = List<String>.from(
+          (data['highlights'] as List).whereType<String>(),
+        );
+      }
+
       return {
         'id': doc.id,
         'title': data['title'] ?? 'Untitled',
@@ -94,7 +103,8 @@ Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
         'date': formattedDate,
         'status': data['status'] ?? 'Upcoming',
         'rating': (data['rating'] is num) ? data['rating'].toDouble() : 0.0,
-        'highlights': List<String>.from(data['highlights'] ?? []),
+        'highlights': highlights,
+        'user_id': data['user_id'] ?? '',
       };
     }).toList();
   }).handleError((e, stackTrace) {
@@ -103,12 +113,25 @@ Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
   });
 }
 
-
-
 Widget buildProfileTab(BuildContext context, User? currentUser) {
+  if (currentUser == null) {
+    return SliverToBoxAdapter(
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          child: Text(
+            "No user logged in",
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+          ),
+        ),
+      ),
+    );
+  }
+
   return SliverToBoxAdapter(
     child: Column(
       children: [
+        // 🔷 Profile Header
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -120,14 +143,12 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(40),
-              bottomRight: Radius.circular(40),
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(40),
             ),
             boxShadow: [
               BoxShadow(
-                color:
-                    const Color.fromARGB(255, 178, 178, 178).withOpacity(0.2),
+                color: const Color.fromARGB(255, 178, 178, 178).withOpacity(0.2),
                 blurRadius: 25,
                 offset: Offset(0, 10),
               ),
@@ -141,10 +162,10 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
                 CircleAvatar(
                   radius: 45,
                   backgroundColor: Colors.white,
-                  backgroundImage: currentUser?.photoURL != null
-                      ? NetworkImage(currentUser!.photoURL!)
+                  backgroundImage: currentUser.photoURL != null
+                      ? NetworkImage(currentUser.photoURL!)
                       : null,
-                  child: currentUser?.photoURL == null
+                  child: currentUser.photoURL == null
                       ? Icon(Icons.person, size: 40, color: Colors.grey)
                       : null,
                 ),
@@ -152,7 +173,7 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
 
                 // 👑 Name
                 Text(
-                  currentUser?.displayName ?? 'Guest User',
+                  currentUser.displayName ?? 'Guest User',
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
@@ -160,11 +181,13 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
                   ),
                 ),
                 Text(
-                  currentUser?.email ?? 'No email',
+                  currentUser.email ?? 'No email',
                   style: TextStyle(fontSize: 10.sp, color: Colors.grey[700]),
                 ),
 
                 SizedBox(height: 3.h),
+
+                // 📊 Stats Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -177,37 +200,50 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
             ),
           ),
         ),
-        SizedBox(height: 2.h),
 
-        // 🧳 My Trips Title
+        // 🔸 My Trips Title
+        SizedBox(height: 2.h),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("My Trips",
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
+              Text(
+                "My Trips",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+              ),
             ],
           ),
         ),
 
-        // 🧳 Trip Grid
+        // 🔹 Trip List Section
         _buildUserTripsSection(currentUser),
       ],
     ),
   );
 }
 
+
 Widget _buildTripStat(User? user) {
   return FutureBuilder<int>(
     future: fetchTripCount(user),
     builder: (context, snapshot) {
-      final count = snapshot.data?.toString() ?? '0';
-      return _buildStat("Trips", count);
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return _buildStat("Trips", "...");
+      }
+
+      if (snapshot.hasError) {
+        debugPrint("🔥 Error in FutureBuilder: ${snapshot.error}");
+        return _buildStat("Trips", "0");
+      }
+
+      final count = snapshot.data ?? 0;
+      return _buildStat("Trips", count.toString());
     },
   );
 }
+
+
 
 Widget _buildLogoutStat(BuildContext context) {
   return GestureDetector(
@@ -251,54 +287,100 @@ Widget _buildLogoutStat(BuildContext context) {
 
 Widget _buildStat(String label, String count) {
   return Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      Text(count,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
-      Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 10.sp)),
+      Text(
+        count.isNotEmpty ? count : '0',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 16.sp,
+          color: Colors.black,
+        ),
+      ),
+      SizedBox(height: 0.5.h),
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 10.sp,
+          color: Colors.grey[600] ?? Colors.grey,
+        ),
+      ),
     ],
   );
 }
+
 Widget _buildUserTripsSection(User? user) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      SizedBox(height: 1.h), 
+      SizedBox(height: 1.h),
 
-      // StreamBuilder to fetch and display user trips
-      StreamBuilder<List<Map<String, dynamic>>>( 
-        stream: fetchUserTrips(user), // Pass in the currentUser
+      StreamBuilder<List<Map<String, dynamic>>>(
+        stream: fetchUserTrips(user),
         builder: (context, snapshot) {
-          // Handle loading state
+          // 🔄 Loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          // Handle errors
-          if (snapshot.hasError) {
-            return Center(child: Text("Error loading trips"));
-          }
-
-          // Handle empty trips list
-          final trips = snapshot.data ?? [];
-          if (trips.isEmpty) {
             return Padding(
-              padding: EdgeInsets.all(4.h),
+              padding: EdgeInsets.symmetric(vertical: 6.h),
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.travel_explore, size: 12.w, color: Colors.grey),
+                    CircularProgressIndicator(),
                     SizedBox(height: 2.h),
-                    Text("No trips yet"),
+                    Text("Аяллуудыг ачааллаж байна...", style: TextStyle(fontSize: 12.sp)),
                   ],
                 ),
               ),
             );
           }
 
-          // Display the trips
+          // ❌ Error state
+          if (snapshot.hasError) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 6.h),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.error_outline, size: 12.w, color: Colors.red),
+                    SizedBox(height: 2.h),
+                    Text("Алдаа гарлаа. Сүлжээг шалгана уу.",
+                        style: TextStyle(fontSize: 12.sp)),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          // 📭 No data state
+          final trips = snapshot.data ?? [];
+          if (trips.isEmpty) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 6.h),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.travel_explore, size: 12.w, color: Colors.grey),
+                    SizedBox(height: 2.h),
+                    Text(
+                      "Одоогоор нэмсэн аялал алга байна.",
+                      style: TextStyle(fontSize: 12.sp),
+                    ),
+                    SizedBox(height: 1.h),
+                    Text(
+                      "Доорх ➕ товчоор аялал нэмээрэй.",
+                      style: TextStyle(fontSize: 10.sp, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          // ✅ Data exists → display trips
           return ListView.builder(
-            shrinkWrap: true, // Makes the list take the required space
-            physics: NeverScrollableScrollPhysics(), // Prevent scrolling
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
             itemCount: trips.length,
             itemBuilder: (context, index) {
               final trip = trips[index];
@@ -306,8 +388,7 @@ Widget _buildUserTripsSection(User? user) {
                 child: ListTile(
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: trip['image'] != null &&
-                            trip['image'].toString().isNotEmpty
+                    child: trip['image'] != null && trip['image'].toString().isNotEmpty
                         ? Image.network(
                             trip['image'],
                             width: 60,
@@ -331,7 +412,7 @@ Widget _buildUserTripsSection(User? user) {
                   ),
                   title: Text(trip['title']),
                   subtitle: Text("${trip['destination']} • ${trip['date']}"),
-                  trailing: trip['user_id'] == FirebaseAuth.instance.currentUser?.uid 
+                  trailing: trip['user_id'] == FirebaseAuth.instance.currentUser?.uid
                       ? Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -401,7 +482,7 @@ Widget _buildUserTripsSection(User? user) {
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Аяллын ID олдсонгүй.'),
+                          content: Text('empty.'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -416,3 +497,4 @@ Widget _buildUserTripsSection(User? user) {
     ],
   );
 }
+
