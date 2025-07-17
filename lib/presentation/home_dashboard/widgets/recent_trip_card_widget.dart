@@ -118,25 +118,25 @@ class RecentTripCardWidget extends StatelessWidget {
           ),
 
           /// Rating
-          if (rating > 0) ...[
-            SizedBox(height: 1.h),
-            Row(
-              children: [
-                CustomIconWidget(
-                  iconName: 'star',
-                  color: Colors.amber,
-                  size: 16,
-                ),
-                SizedBox(width: 1.w),
-                Text(
-                  rating.toString(),
-                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          // if (rating > 0) ...[
+          //   SizedBox(height: 1.h),
+          //   Row(
+          //     children: [
+          //       CustomIconWidget(
+          //         iconName: 'star',
+          //         color: Colors.amber,
+          //         size: 16,
+          //       ),
+          //       SizedBox(width: 1.w),
+          //       Text(
+          //         rating.toString(),
+          //         style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+          //           fontWeight: FontWeight.w500,
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ],
 
           SizedBox(height: 1.h),
 

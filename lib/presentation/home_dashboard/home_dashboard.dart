@@ -324,48 +324,36 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-  Widget _buildSavedDestinationsSection(String? userId) {
-    if (userId == null) {
-      return SliverToBoxAdapter(
-        child: Center(child: Text('Please log in to see saved destinations')),
-      );
-    }
-
+Widget _buildSavedDestinationsSection(String? userId) {
+  if (userId == null) {
     return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Saved Destinations",
-              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 12.sp,
-              ),
+      child: Center(child: Text('Please log in to see saved destinations')),
+    );
+  }
+
+  return SliverToBoxAdapter(
+    child: Padding(
+      padding: EdgeInsets.all(4.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Saved Destinations",
+            style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 12.sp,
             ),
-            SizedBox(height: 2.h),
-            StreamBuilder<List<Map<String, dynamic>>>(
-              stream: fetchSavedDestinations(userId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Text('Error loading saved destinations');
-                }
-
-                final savedDestinations = snapshot.data ?? [];
-
-                if (savedDestinations.isEmpty) {
-                  return Text('No saved destinations yet.');
-                }
-
+          ),
+          SizedBox(height: 2.h),
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: fetchSavedDestinations(userId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                // ✅ Show shimmer loading
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: savedDestinations.length,
+                  itemCount: 4, // Dummy shimmer item count
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 3.w,
@@ -373,33 +361,69 @@ class _HomeDashboardState extends State<HomeDashboard>
                     childAspectRatio: 0.8,
                   ),
                   itemBuilder: (context, index) {
-                    final destination = savedDestinations[index];
-                    return RecommendedDestinationWidget(
-                      name: destination["name"] as String,
-                      imageUrl: destination["image"] as String,
-                      price: destination["price"] as String,
-                      rating: destination["rating"] as double,
-                      duration: destination["duration"] as String,
-                      category: destination["category"] as String,
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/home-detail',
-                        arguments: destination['id'],
+                    return Shimmer.fromColors(
+                      baseColor: Colors.grey.shade300,
+                      highlightColor: Colors.grey.shade100,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white,
+                        ),
+                        padding: EdgeInsets.all(2.w),
                       ),
-                      isSaved:
-                          savedDestinationIds.contains(destination['id']), // ✅
-                      onFavoriteToggle: () =>
-                          _toggleSaveDestination(destination['id']), // ✅
                     );
                   },
                 );
-              },
-            ),
-          ],
-        ),
+              }
+
+              if (snapshot.hasError) {
+                return Text('Error loading saved destinations');
+              }
+
+              final savedDestinations = snapshot.data ?? [];
+
+              if (savedDestinations.isEmpty) {
+                return Text('No saved destinations yet.');
+              }
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: savedDestinations.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 3.w,
+                  mainAxisSpacing: 2.h,
+                  childAspectRatio: 0.8,
+                ),
+                itemBuilder: (context, index) {
+                  final destination = savedDestinations[index];
+                  return RecommendedDestinationWidget(
+                    name: destination["name"] as String,
+                    imageUrl: destination["image"] as String,
+                    price: destination["price"] as String,
+                    rating: destination["rating"] as double,
+                    duration: destination["duration"] as String,
+                    category: destination["category"] as String,
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      '/home-detail',
+                      arguments: destination['id'],
+                    ),
+                    isSaved: savedDestinationIds.contains(destination['id']),
+                    onFavoriteToggle: () =>
+                        _toggleSaveDestination(destination['id']),
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildNotificationIcon() {
     final user = FirebaseAuth.instance.currentUser;

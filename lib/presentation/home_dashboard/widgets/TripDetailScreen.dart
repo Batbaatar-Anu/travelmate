@@ -113,21 +113,7 @@ class TripDetailScreen extends StatelessWidget {
                     }
                   },
                 ),
-              ] else ...[
-                // Show bookmark and share buttons for non-owners
-                IconButton(
-                  icon: const Icon(Icons.bookmark_border, color: Colors.white),
-                  onPressed: () {
-                    // TODO: Implement save to bookmarks logic
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.share, color: Colors.white),
-                  onPressed: () {
-                    // TODO: Implement share logic
-                  },
-                ),
-              ],
+                ] 
             ],
           ),
           SliverToBoxAdapter(
@@ -172,28 +158,7 @@ class TripDetailScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star,
-                                color: Colors.amber, size: 18),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${trip['rating'] ?? 0.0}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue[900],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                   
                     ],
                   ),
                   const SizedBox(height: 16),
