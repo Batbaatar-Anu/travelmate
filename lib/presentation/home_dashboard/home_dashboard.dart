@@ -824,7 +824,6 @@ class _HomeDashboardState extends State<HomeDashboard>
           ),
           SizedBox(height: 1.h),
 
-          // 🔹 Category chips
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 4.w),
             child: StreamBuilder<List<String>>(

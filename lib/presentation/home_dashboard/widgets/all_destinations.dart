@@ -76,7 +76,6 @@ class AllDestinationsScreen extends StatelessWidget {
     );
   }
 
-  /// 🔁 Shimmer placeholder grid
   Widget _buildShimmerGrid() {
     return Padding(
       padding: EdgeInsets.all(4.w),

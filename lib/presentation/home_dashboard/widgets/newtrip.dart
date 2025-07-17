@@ -56,7 +56,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
       SnackBar(
         content: Row(
           children: [
-            Icon(isError ? Icons.error : Icons.check_circle, color: Colors.white),
+            Icon(isError ? Icons.error : Icons.check_circle,
+                color: Colors.white),
             SizedBox(width: 12),
             Expanded(child: Text(message)),
           ],
@@ -145,12 +146,14 @@ class _NewTripScreenState extends State<NewTripScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+        Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
         SizedBox(height: 0.5.h),
         TextFormField(
           controller: controller,
           validator: requiredField
-              ? (val) => val == null || val.isEmpty ? '$title шаардлагатай' : null
+              ? (val) =>
+                  val == null || val.isEmpty ? '$title шаардлагатай' : null
               : null,
           maxLines: maxLines,
           keyboardType: keyboardType,
@@ -163,7 +166,8 @@ class _NewTripScreenState extends State<NewTripScreen> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
       ],

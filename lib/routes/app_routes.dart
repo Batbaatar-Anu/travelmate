@@ -21,7 +21,7 @@ class AppRoutes {
   static const String newTrip = '/new-trip';
   static const String allDestinations = '/all-destinations';
   static const String tripDetail = '/trip-detail';
-  static const String searchResult = '/search-result'; // ✅ шинэ нэмэлт
+  static const String searchResult = '/search-result'; 
 
   static Map<String, WidgetBuilder> routes = {
     initial: (context) => const OnboardingFlow(),
