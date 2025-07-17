@@ -151,20 +151,20 @@ class ProfileTripsSection extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          icon: Icon(Icons.edit, size: 25),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => TripEditScreen(
-                  trip: trip,
-                  tripId: trip['id'],
-                ),
-              ),
-            );
-          },
-        ),
+        // IconButton(
+        //   icon: Icon(Icons.edit, size: 25),
+        //   onPressed: () {
+        //     Navigator.push(
+        //       context,
+        //       MaterialPageRoute(
+        //         builder: (_) => TripEditScreen(
+        //           trip: trip,
+        //           tripId: trip['id'],
+        //         ),
+        //       ),
+        //     );
+        //   },
+        // ),
         IconButton(
           icon: Icon(Icons.delete, size: 25),
           onPressed: () => _showDeleteDialog(context, trip),
