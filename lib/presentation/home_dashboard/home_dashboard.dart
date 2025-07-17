@@ -162,11 +162,12 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
   @override
-  void dispose() {
-    _tabController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
+void dispose() {
+  _tabController.dispose();
+  _scrollController.dispose();
+  super.dispose();
+}
+
 
   Stream<List<String>> fetchCategories() async* {
     try {
@@ -324,66 +325,39 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-  Widget _buildSavedDestinationsSection(String? userId) {
-    if (userId == null) {
-      return SliverToBoxAdapter(
-        child: Center(child: Text('Please log in to see saved destinations')),
-      );
-    }
-
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.all(4.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Saved Destinations",
-              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 12.sp,
-              ),
+Widget _buildSavedDestinationsSection(String? userId) {
+  return SliverToBoxAdapter(
+    child: Padding(
+      padding: EdgeInsets.all(4.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Saved Destinations",
+            style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 12.sp,
             ),
-            SizedBox(height: 2.h),
+          ),
+          SizedBox(height: 2.h),
+          if (userId == null)
+            const Text('Please log in to see saved destinations')
+          else
             StreamBuilder<List<Map<String, dynamic>>>(
               stream: fetchSavedDestinations(userId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  // ✅ Show shimmer loading
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 4, // Dummy shimmer item count
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 3.w,
-                      mainAxisSpacing: 2.h,
-                      childAspectRatio: 0.8,
-                    ),
-                    itemBuilder: (context, index) {
-                      return Shimmer.fromColors(
-                        baseColor: Colors.grey.shade300,
-                        highlightColor: Colors.grey.shade100,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            color: Colors.white,
-                          ),
-                          padding: EdgeInsets.all(2.w),
-                        ),
-                      );
-                    },
-                  );
+                  return _buildShimmerDestinationGrid(); // ✔ better UX
                 }
 
                 if (snapshot.hasError) {
-                  return Text('Error loading saved destinations');
+                  return const Text('Error loading saved destinations');
                 }
 
                 final savedDestinations = snapshot.data ?? [];
 
                 if (savedDestinations.isEmpty) {
-                  return Text('No saved destinations yet.');
+                  return const Text('No saved destinations yet.');
                 }
 
                 return GridView.builder(
@@ -399,12 +373,12 @@ class _HomeDashboardState extends State<HomeDashboard>
                   itemBuilder: (context, index) {
                     final destination = savedDestinations[index];
                     return RecommendedDestinationWidget(
-                      name: destination["name"] as String,
-                      imageUrl: destination["image"] as String,
-                      price: destination["price"] as String,
-                      rating: destination["rating"] as double,
-                      duration: destination["duration"] as String,
-                      category: destination["category"] as String,
+                      name: destination["name"] ?? '',
+                      imageUrl: destination["image"] ?? '',
+                      price: destination["price"] ?? '',
+                      rating: (destination["rating"] ?? 0.0).toDouble(),
+                      duration: destination["duration"] ?? '',
+                      category: destination["category"] ?? '',
                       onTap: () => Navigator.pushNamed(
                         context,
                         '/home-detail',
@@ -418,11 +392,12 @@ class _HomeDashboardState extends State<HomeDashboard>
                 );
               },
             ),
-          ],
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildNotificationIcon() {
     final user = FirebaseAuth.instance.currentUser;
@@ -940,109 +915,6 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-  // Widget _buildTravelTipsSection() {
-  //   return SliverToBoxAdapter(
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         SizedBox(height: 3.h),
-  //         Padding(
-  //           padding: EdgeInsets.symmetric(horizontal: 4.w),
-  //           child: Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text(
-  //                 "Travel Tips",
-  //                 style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-  //                   fontWeight: FontWeight.w600,
-  //                 ),
-  //               ),
-  //               TextButton(
-  //                 onPressed: () => Navigator.pushNamed(context, '/home-detail'),
-  //                 child: Text("View All"),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         SizedBox(height: 1.h),
-  //         ListView.builder(
-  //           shrinkWrap: true,
-  //           physics: const NeverScrollableScrollPhysics(),
-  //           padding: EdgeInsets.symmetric(horizontal: 4.w),
-  //           itemCount: travelTips.length,
-  //           itemBuilder: (context, index) {
-  //             final tip = travelTips[index];
-  //             return Container(
-  //               margin: EdgeInsets.only(bottom: 2.h),
-  //               child: TravelTipCardWidget(
-  //                 title: tip["title"] as String,
-  //                 imageUrl: tip["image"] as String,
-  //                 readTime: tip["readTime"] as String,
-  //                 category: tip["category"] as String,
-  //                 excerpt: tip["excerpt"] as String,
-  //                 onTap: () => Navigator.pushNamed(context, '/home-detail'),
-  //               ),
-  //             );
-  //           },
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildUpcomingRemindersSection() {
-  //   return SliverToBoxAdapter(
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         SizedBox(height: 3.h),
-  //         Padding(
-  //           padding: EdgeInsets.symmetric(horizontal: 4.w),
-  //           child: Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text(
-  //                 "Upcoming Reminders",
-  //                 style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-  //                   fontWeight: FontWeight.w600,
-  //                 ),
-  //               ),
-  //               TextButton(
-  //                 onPressed: () => Navigator.pushNamed(
-  //                     context, '/push-notification-settings'),
-  //                 child: Text("View All"),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         SizedBox(height: 1.h),
-  //         ListView.builder(
-  //           shrinkWrap: true,
-  //           physics: const NeverScrollableScrollPhysics(),
-  //           padding: EdgeInsets.symmetric(horizontal: 4.w),
-  //           itemCount:
-  //               upcomingReminders.length > 2 ? 2 : upcomingReminders.length,
-  //           itemBuilder: (context, index) {
-  //             final reminder = upcomingReminders[index];
-  //             return Container(
-  //               margin: EdgeInsets.only(bottom: 1.h),
-  //               child: UpcomingReminderWidget(
-  //                 title: reminder["title"] as String,
-  //                 subtitle: reminder["subtitle"] as String,
-  //                 time: reminder["time"] as String,
-  //                 type: reminder["type"] as String,
-  //                 priority: reminder["priority"] as String,
-  //                 onTap: () => Navigator.pushNamed(
-  //                     context, '/push-notification-settings'),
-  //               ),
-  //             );
-  //           },
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   Widget _buildBottomNavigationBar() {
     return BottomNavigationBar(
       currentIndex: _currentTabIndex,
@@ -1117,53 +989,6 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-  // void _showShareDialog(String destination) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: Text("Share Trip"),
-  //         content:
-  //             Text("Share your amazing trip to $destination with friends!"),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () => Navigator.of(context).pop(),
-  //             child: Text("Cancel"),
-  //           ),
-  //           ElevatedButton(
-  //             onPressed: () => Navigator.of(context).pop(),
-  //             child: Text("Share"),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
-
-  // void _showEditDialog(String destination) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: Text("Edit Trip"),
-  //         content: Text("Edit your trip details for $destination."),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () => Navigator.of(context).pop(),
-  //             child: Text("Cancel"),
-  //           ),
-  //           ElevatedButton(
-  //             onPressed: () {
-  //               Navigator.of(context).pop();
-  //               Navigator.pushNamed(context, '/home-detail');
-  //             },
-  //             child: Text("Edit"),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
   Widget _buildShimmerDestinationGrid() {
     return GridView.builder(
       shrinkWrap: true,

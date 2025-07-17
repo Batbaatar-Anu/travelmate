@@ -262,31 +262,48 @@ Widget _buildSavedStat(User? user) {
 Widget _buildLogoutStat(BuildContext context) {
   return GestureDetector(
     onTap: () async {
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text("Log Out"),
-          content: Text("Are you sure you want to log out?"),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text("Cancel")),
-            ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text("Log Out")),
-          ],
-        ),
-      );
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text("Log Out"),
+      content: Text("Are you sure you want to log out?"),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text("Cancel")),
+        ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text("Log Out")),
+      ],
+    ),
+  );
 
-      if (confirm == true) {
-        final auth = FirebaseAuthService();
-        await auth.signOut();
-        if (context.mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-              context, '/user-login', (route) => false);
-        }
+  if (confirm == true) {
+    final auth = FirebaseAuthService();
+    try {
+      await auth.signOut();
+
+      // 🛡️ context mounted эсэхийг шалгаж байж navigation хийх
+      if (context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/user-login',
+          (route) => false,
+        );
       }
-    },
+    } catch (e) {
+      debugPrint("❌ Sign out failed: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Logout failed. Please try again."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}
+,
     child: Column(
       children: [
         Icon(Icons.logout, color: Colors.red, size: 24),
