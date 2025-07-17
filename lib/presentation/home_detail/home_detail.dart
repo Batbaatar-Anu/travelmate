@@ -70,7 +70,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
   void _onScroll() {
     // ✅ Check if widget is still mounted before calling setState
     if (!mounted) return;
-    
+
     if (_scrollController.offset > 400 && !_showBackToTop) {
       setState(() {
         _showBackToTop = true;
@@ -119,7 +119,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
       }
     } catch (e) {
       debugPrint('Error fetching destination: $e');
-      
+
       // ✅ Check if widget is still mounted before calling setState
       if (mounted) {
         setState(() {
@@ -131,7 +131,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
 
   Future<void> _onRefresh() async {
     await Future.delayed(const Duration(seconds: 2));
-    
+
     // ✅ Check if widget is still mounted before showing SnackBar
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -156,7 +156,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
 
       if (_isSaved) {
         await savedRef.delete();
-        
+
         // ✅ Check if widget is still mounted before showing SnackBar
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -168,7 +168,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
           'destination_id': _destinationId,
           'saved_at': FieldValue.serverTimestamp(),
         });
-        
+
         // ✅ Check if widget is still mounted before showing SnackBar
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -332,9 +332,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
                 child: IconButton(
                   onPressed: _handleSaveDestination,
                   icon: CustomIconWidget(
-                    iconName: _isSaved
-                        ? 'bookmark'
-                        : 'bookmark_border',
+                    iconName: _isSaved ? 'bookmark' : 'bookmark_border',
                     color: Colors.white,
                     size: 24,
                   ),

@@ -57,7 +57,8 @@ class TripDetailScreen extends StatelessWidget {
             ),
             actions: [
               // Show buttons only if current user owns this trip
-              if (trip['user_id'] == FirebaseAuth.instance.currentUser?.uid) ...[
+              if (trip['user_id'] ==
+                  FirebaseAuth.instance.currentUser?.uid) ...[
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.white),
                   onPressed: () {
@@ -102,7 +103,8 @@ class TripDetailScreen extends StatelessWidget {
                           .delete();
 
                       if (context.mounted) {
-                        Navigator.pop(context); // Back to previous screen after delete
+                        Navigator.pop(
+                            context); // Back to previous screen after delete
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text("Trip deleted successfully"),
@@ -113,7 +115,7 @@ class TripDetailScreen extends StatelessWidget {
                     }
                   },
                 ),
-                ] 
+              ]
             ],
           ),
           SliverToBoxAdapter(
@@ -140,8 +142,8 @@ class TripDetailScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              trip['subtitle']?.toString() ?? 
-                                  trip['destination']?.toString() ?? 
+                              trip['subtitle']?.toString() ??
+                                  trip['destination']?.toString() ??
                                   '',
                               style: TextStyle(color: Colors.grey[700]),
                             ),
@@ -158,7 +160,6 @@ class TripDetailScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                   
                     ],
                   ),
                   const SizedBox(height: 16),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:travelmate/presentation/home_dashboard/widgets/SearchResultScreen.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/TripDetailScreen.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/all_destinations.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/newtrip.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
   static const String newTrip = '/new-trip';
   static const String allDestinations = '/all-destinations';
   static const String tripDetail = '/trip-detail';
+  static const String searchResult = '/search-result'; // ✅ шинэ нэмэлт
 
   static Map<String, WidgetBuilder> routes = {
     initial: (context) => const OnboardingFlow(),
@@ -40,6 +42,12 @@ class AppRoutes {
         );
       }
       return TripDetailScreen(trip: args);
+    },
+    searchResult: (context) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      final query = args is String && args.trim().isNotEmpty ? args : null;
+
+      return SearchResultScreen(query: query ?? '');
     },
   };
 }

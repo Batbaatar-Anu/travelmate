@@ -82,24 +82,6 @@ class TripCountdownWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row(
-            //   children: [
-            //     Container(
-            //       padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-            //       decoration: BoxDecoration(
-            //         color: AppTheme.lightTheme.colorScheme.secondary,
-            //         borderRadius: BorderRadius.circular(20),
-            //       ),
-            //       child: Text(
-            //         "Upcoming Trip",
-            //         style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
-            //           color: Colors.white,
-            //           fontWeight: FontWeight.w600,
-            //         ),
-            //       ),
-            //     ),
-            //   ],
-            // ),
             SizedBox(height: 2.h),
             Text(
               destination,
@@ -109,54 +91,43 @@ class TripCountdownWidget extends StatelessWidget {
               ),
             ),
             SizedBox(height: 1.h),
-            Row(
-              children: [
-                Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CustomIconWidget(
-                        iconName: 'schedule',
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      SizedBox(width: 2.w),
-                      Text(
-                        "$daysLeft days left",
-                        style:
-                            AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: EdgeInsets.all(2.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomIconWidget(
-                    iconName: 'arrow_forward',
-                    color: AppTheme.lightTheme.primaryColor,
-                    size: 24,
-                  ),
-                ),
-              ],
-            ),
+            // Row(
+            //   children: [
+            //     Container(
+            //       padding:
+            //           EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
+            //       decoration: BoxDecoration(
+            //         color: Colors.white.withValues(alpha: 0.2),
+            //         borderRadius: BorderRadius.circular(12),
+            //         border: Border.all(
+            //           color: Colors.white.withValues(alpha: 0.3),
+            //           width: 1,
+            //         ),
+            //       ),
+            //       child: Row(
+            //         mainAxisSize: MainAxisSize.min,
+            //         children: [
+            //           CustomIconWidget(
+            //             iconName: 'schedule',
+            //             color: Colors.white,
+            //             size: 20,
+            //           ),
+            //           SizedBox(width: 2.w),
+            //           Text(
+            //             "$daysLeft days left",
+            //             style:
+            //                 AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
+            //               color: Colors.white,
+            //               fontWeight: FontWeight.w600,
+            //             ),
+            //           ),
+            //         ],
+            //       ),
+            //     ),
+            //     const Spacer(),
+
+            //   ],
+            // ),
           ],
         ),
       ),

@@ -18,9 +18,7 @@ class ProfileTripsSection extends StatelessWidget {
     }
 
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: user != null
-          ? fetchUserTrips(user)
-          : Stream.value([]), 
+      stream: user != null ? fetchUserTrips(user) : Stream.value([]),
       builder: (context, snapshot) {
         debugPrint("🔄 StreamBuilder state: ${snapshot.connectionState}");
 
@@ -80,12 +78,21 @@ class ProfileTripsSection extends StatelessWidget {
                     ],
                   ),
                   trailing: _buildActions(context, trip),
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.tripDetail,
-                      arguments: trip,
-                    );
+                  onTap: () async {
+                    final doc = await FirebaseFirestore.instance
+                        .collection('trips')
+                        .doc(trip['id'])
+                        .get();
+
+                    if (doc.exists) {
+                      final fullTripData = doc.data()!;
+                      fullTripData['id'] = doc.id; // id-г document ID-оос авна
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.tripDetail,
+                        arguments: fullTripData,
+                      );
+                    }
                   },
                 ),
               );

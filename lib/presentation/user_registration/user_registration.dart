@@ -44,7 +44,7 @@ class _UserRegistrationState extends State<UserRegistration> {
     _setupFormValidation();
     _initializeAuth();
   }
- 
+
   void _initializeAuth() async {
     try {
       // Remove this line:
