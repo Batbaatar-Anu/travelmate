@@ -26,31 +26,28 @@ class _HomeDashboardState extends State<HomeDashboard>
     with TickerProviderStateMixin {
   int _currentTabIndex = 0;
   bool _isRefreshing = false;
+  bool _isLoading = true; // Add loading state
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
   User? _currentUser;
   Map<String, dynamic>? _currentUserProfile;
   Set<String> savedDestinationIds = {};
   String _currentCategory = 'All';
-  // Mock data for travel dashboard
   List<Map<String, dynamic>> postedTrips = [];
   List<Map<String, dynamic>> recommendedDestinations = [];
-  Future<void> markAllNotificationsAsRead(String userId) async {
-    final userNotificationsRef = FirebaseFirestore.instance
+
+  Future<void> markAllNotificationsAsRead(String? uid) async {
+    if (uid == null) return;
+    final query = await FirebaseFirestore.instance
         .collection('user_profiles')
-        .doc(userId)
-        .collection('notifications');
+        .doc(uid)
+        .collection('notifications')
+        .where('isRead', isEqualTo: false)
+        .get();
 
-    final unreadSnapshot =
-        await userNotificationsRef.where('isRead', isEqualTo: false).get();
-
-    final batch = FirebaseFirestore.instance.batch();
-
-    for (final doc in unreadSnapshot.docs) {
-      batch.update(doc.reference, {'isRead': true});
+    for (var doc in query.docs) {
+      await doc.reference.update({'isRead': true});
     }
-
-    await batch.commit();
   }
 
   Stream<List<Map<String, dynamic>>> fetchRecommendedDestinations() {
@@ -136,38 +133,72 @@ class _HomeDashboardState extends State<HomeDashboard>
     });
   }
 
-@override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _initializeUser();
+  }
 
-  _tabController = TabController(length: 3, vsync: this);
+  void _initializeUser() async {
+    try {
+      // Get current user immediately
+      final currentUser = FirebaseAuth.instance.currentUser;
 
-  // 🔐 Listen for auth changes (login/logout)
-  FirebaseAuth.instance.authStateChanges().listen((user) {
-    if (user == null) {
       setState(() {
-        _currentUser = null;
-        savedDestinationIds.clear();
-        _currentUserProfile = null;
+        _currentUser = currentUser;
+        _isLoading = false;
       });
-    } else {
+
+      // Then listen for auth changes
+      FirebaseAuth.instance.authStateChanges().listen((user) {
+        if (mounted) {
+          setState(() {
+            _currentUser = user;
+            if (user == null) {
+              savedDestinationIds.clear();
+              _currentUserProfile = null;
+            }
+          });
+        }
+      });
+
+      // Load saved destinations if user exists
+      if (currentUser != null) {
+        _loadSavedDestinations(currentUser.uid);
+      }
+    } catch (e) {
+      debugPrint('Error initializing user: $e');
       setState(() {
-        _currentUser = user;
+        _isLoading = false;
       });
     }
-  });
+  }
 
-  // 🧠 Get initial user
-  _currentUser = FirebaseAuth.instance.currentUser;
-}
+  void _loadSavedDestinations(String userId) async {
+    try {
+      final savedSnapshot = await FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(userId)
+          .collection('saved_destinations')
+          .get();
+
+      if (mounted) {
+        setState(() {
+          savedDestinationIds = savedSnapshot.docs.map((doc) => doc.id).toSet();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading saved destinations: $e');
+    }
+  }
 
   @override
-void dispose() {
-  _tabController.dispose();
-  _scrollController.dispose();
-  super.dispose();
-}
-
+  void dispose() {
+    _tabController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Stream<List<String>> fetchCategories() async* {
     try {
@@ -189,39 +220,54 @@ void dispose() {
     }
   }
 
-  Stream<List<Map<String, dynamic>>> streamPostedTrips() {
+  Stream<List<Map<String, dynamic>>> streamPostedTrips(String uid) {
     return FirebaseFirestore.instance
         .collection('trips')
+        .where('user_id', isEqualTo: uid)
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return {
-          ...data,
-          'id': doc.id,
-        };
-      }).toList();
-    });
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              return {
+                ...data,
+                'id': doc.id,
+              };
+            }).toList());
   }
 
   void _toggleSaveDestination(String destinationId) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
 
-    final docRef = FirebaseFirestore.instance
-        .collection('user_profiles')
-        .doc(user.uid)
-        .collection('saved_destinations')
-        .doc(destinationId);
+    if (user == null) {
+      debugPrint('⚠️ User is null, cannot toggle destination save.');
+      return;
+    }
 
-    if (savedDestinationIds.contains(destinationId)) {
-      await docRef.delete();
-    } else {
-      await docRef.set({
-        'destination_id': destinationId,
-        'saved_at': FieldValue.serverTimestamp(),
-      });
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(user.uid)
+          .collection('saved_destinations')
+          .doc(destinationId);
+
+      if (savedDestinationIds.contains(destinationId)) {
+        await docRef.delete();
+        savedDestinationIds.remove(destinationId); // optionally update state
+        debugPrint('🗑 Destination removed');
+      } else {
+        await docRef.set({
+          'destination_id': destinationId,
+          'saved_at': FieldValue.serverTimestamp(),
+        });
+        savedDestinationIds.add(destinationId); // optionally update state
+        debugPrint('✅ Destination saved');
+      }
+
+      if (mounted) {
+        setState(() {}); // refresh UI if needed
+      }
+    } catch (e) {
+      debugPrint('❌ Error toggling save destination: $e');
     }
   }
 
@@ -250,12 +296,25 @@ void dispose() {
       _isRefreshing = true;
     });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // Refresh user data
+      await FirebaseAuth.instance.currentUser?.reload();
+      final refreshedUser = FirebaseAuth.instance.currentUser;
 
-    setState(() {
-      _isRefreshing = false;
-    });
+      if (refreshedUser != null) {
+        _loadSavedDestinations(refreshedUser.uid);
+      }
+
+      setState(() {
+        _currentUser = refreshedUser;
+      });
+    } catch (e) {
+      debugPrint('Error refreshing: $e');
+    } finally {
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
   }
 
   void _onTabTapped(int index) {
@@ -276,27 +335,20 @@ void dispose() {
     // }
   }
 
-  Future<void> _getUserProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      setState(() {
-        _currentUser = user;
-      });
-
-      final doc = await FirebaseFirestore.instance
-          .collection('user_profiles')
-          .doc(user.uid)
-          .get();
-      if (doc.exists) {
-        setState(() {
-          _currentUserProfile = doc.data();
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Add loading state
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: AppTheme.lightTheme.primaryColor,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
       body: SafeArea(
@@ -325,135 +377,145 @@ void dispose() {
     );
   }
 
-Widget _buildSavedDestinationsSection(String? userId) {
-  return SliverToBoxAdapter(
-    child: Padding(
-      padding: EdgeInsets.all(4.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Saved Destinations",
-            style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 12.sp,
+  Widget _buildSavedDestinationsSection(String? userId) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.all(4.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Saved Destinations",
+              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
             ),
-          ),
-          SizedBox(height: 2.h),
-          if (userId == null)
-            const Text('Please log in to see saved destinations')
-          else
-            StreamBuilder<List<Map<String, dynamic>>>(
-              stream: fetchSavedDestinations(userId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildShimmerDestinationGrid(); // ✔ better UX
-                }
+            SizedBox(height: 2.h),
+            if (userId == null)
+              const Text('Please log in to see saved destinations')
+            else
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: fetchSavedDestinations(userId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return _buildShimmerDestinationGrid(); // ✔ better UX
+                  }
 
-                if (snapshot.hasError) {
-                  return const Text('Error loading saved destinations');
-                }
+                  if (snapshot.hasError) {
+                    return const Text('Error loading saved destinations');
+                  }
 
-                final savedDestinations = snapshot.data ?? [];
+                  final savedDestinations = snapshot.data ?? [];
 
-                if (savedDestinations.isEmpty) {
-                  return const Text('No saved destinations yet.');
-                }
+                  if (savedDestinations.isEmpty) {
+                    return const Text('No saved destinations yet.');
+                  }
 
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: savedDestinations.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 3.w,
-                    mainAxisSpacing: 2.h,
-                    childAspectRatio: 0.8,
-                  ),
-                  itemBuilder: (context, index) {
-                    final destination = savedDestinations[index];
-                    return RecommendedDestinationWidget(
-                      name: destination["name"] ?? '',
-                      imageUrl: destination["image"] ?? '',
-                      price: destination["price"] ?? '',
-                      rating: (destination["rating"] ?? 0.0).toDouble(),
-                      duration: destination["duration"] ?? '',
-                      category: destination["category"] ?? '',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/home-detail',
-                        arguments: destination['id'],
-                      ),
-                      isSaved: savedDestinationIds.contains(destination['id']),
-                      onFavoriteToggle: () =>
-                          _toggleSaveDestination(destination['id']),
-                    );
-                  },
-                );
-              },
-            ),
-        ],
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: savedDestinations.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 3.w,
+                      mainAxisSpacing: 2.h,
+                      childAspectRatio: 0.8,
+                    ),
+                    itemBuilder: (context, index) {
+                      final destination = savedDestinations[index];
+                      return RecommendedDestinationWidget(
+                        name: destination["name"] ?? '',
+                        imageUrl: destination["image"] ?? '',
+                        price: destination["price"] ?? '',
+                        rating: (destination["rating"] ?? 0.0).toDouble(),
+                        duration: destination["duration"] ?? '',
+                        category: destination["category"] ?? '',
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/home-detail',
+                          arguments: destination['id'],
+                        ),
+                        isSaved:
+                            savedDestinationIds.contains(destination['id']),
+                        onFavoriteToggle: () =>
+                            _toggleSaveDestination(destination['id']),
+                      );
+                    },
+                  );
+                },
+              ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildNotificationIcon() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const SizedBox.shrink();
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('user_profiles')
-          .doc(user.uid)
-          .collection('notifications')
-          .where('isRead', isEqualTo: false)
-          .snapshots(),
+    return FutureBuilder<User?>(
+      future: Future.value(FirebaseAuth.instance.currentUser),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildNotificationBaseIcon();
+        final user = snapshot.data;
+
+        if (user == null) {
+          return const SizedBox.shrink(); // 👈 хэрэглэгч байхгүй үед хоосон
         }
 
-        final unreadCount = snapshot.data?.docs.length ?? 0;
+        final uid = user.uid;
 
-        return GestureDetector(
-          onTap: () async {
-            await markAllNotificationsAsRead(user.uid);
-            if (context.mounted) {
-              Navigator.pushNamed(context, '/push-notification-settings');
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('user_profiles')
+              .doc(uid)
+              .collection('notifications')
+              .where('isRead', isEqualTo: false)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildNotificationBaseIcon();
             }
-          },
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _buildNotificationBaseIcon(),
-              if (unreadCount > 0)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints:
-                        const BoxConstraints(minWidth: 22, minHeight: 22),
-                    child: Center(
-                      child: Text(
-                        unreadCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+
+            final unreadCount = snapshot.data?.docs.length ?? 0;
+
+            return GestureDetector(
+              onTap: () async {
+                await markAllNotificationsAsRead(uid);
+                if (context.mounted) {
+                  Navigator.pushNamed(context, '/push-notification-settings');
+                }
+              },
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _buildNotificationBaseIcon(),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints:
+                            const BoxConstraints(minWidth: 22, minHeight: 22),
+                        child: Center(
+                          child: Text(
+                            unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
-          ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -625,6 +687,55 @@ Widget _buildSavedDestinationsSection(String? userId) {
   }
 
   Widget _buildRecentTripsSection() {
+    if (_currentUser == null) {
+      return SliverToBoxAdapter(
+        child: Container(
+          padding: EdgeInsets.all(4.w),
+          child: Column(
+            children: [
+              Text(
+                "Recent Trips",
+                style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12.sp,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Container(
+                padding: EdgeInsets.all(4.w),
+                decoration: BoxDecoration(
+                  color: AppTheme.lightTheme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.login,
+                      size: 48,
+                      color: AppTheme.lightTheme.primaryColor,
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      "Please log in to see your trips",
+                      style: AppTheme.lightTheme.textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 2.h),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/user-login');
+                      },
+                      child: Text("Log In"),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return SliverToBoxAdapter(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
@@ -640,20 +751,42 @@ Widget _buildSavedDestinationsSection(String? userId) {
             ),
             SizedBox(height: 2.h),
             StreamBuilder<List<Map<String, dynamic>>>(
-              stream: streamPostedTrips(),
+              stream: streamPostedTrips(_currentUser!.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return _buildShimmerRecentTrips();
                 }
 
                 if (snapshot.hasError) {
-                  return const Center(
-                      child: Text("Аяллуудыг ачааллаж чадсангүй."));
+                  return Center(
+                    child: Text("Error loading trips: ${snapshot.error}"),
+                  );
                 }
 
                 final trips = snapshot.data ?? [];
                 if (trips.isEmpty) {
-                  return const Center(child: Text("Сүүлийн аялал алга байна."));
+                  return Container(
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: AppTheme.lightTheme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.travel_explore,
+                          size: 48,
+                          color: AppTheme.lightTheme.primaryColor,
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          "No trips yet. Start planning your adventure!",
+                          style: AppTheme.lightTheme.textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
                 return ListView.separated(
@@ -703,18 +836,14 @@ Widget _buildSavedDestinationsSection(String? userId) {
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Аяллын ID олдсонгүй.'),
+                              content: Text('Trip ID not found.'),
                               backgroundColor: Colors.red,
                             ),
                           );
                         }
                       },
-                      onShare: () {
-                        // TODO: Share logic
-                      },
-                      onEdit: () {
-                        // TODO: Edit logic
-                      },
+                      onShare: () {},
+                      onEdit: () {},
                     );
                   },
                 );

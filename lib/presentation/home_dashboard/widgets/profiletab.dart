@@ -144,13 +144,56 @@ Stream<List<Map<String, dynamic>>> fetchUserTrips(User? user) {
 }
 
 Widget buildProfileTab(BuildContext context, User? currentUser) {
-  if (currentUser == null || currentUser.uid.isEmpty) {
+  if (currentUser == null) {
     return SliverToBoxAdapter(
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          child: Text("No user logged in",
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+      child: Container(
+        height: 80.h,
+        padding: EdgeInsets.all(4.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_outline,
+              size: 80,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 3.h),
+            Text(
+              "Please log in to view your profile",
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 3.h),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/user-login');
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+              child: Text(
+                "Log In",
+                style: TextStyle(fontSize: 14.sp),
+              ),
+            ),
+            SizedBox(height: 2.h),
+            TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/user-register');
+              },
+              child: Text(
+                "Don't have an account? Register here",
+                style: TextStyle(fontSize: 12.sp),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -191,13 +234,18 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
                       : null,
                 ),
                 SizedBox(height: 1.h),
-                Text(currentUser.displayName ?? 'Guest User',
-                    style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black)),
-                Text(currentUser.email ?? 'No email',
-                    style: TextStyle(fontSize: 10.sp, color: Colors.grey[700])),
+                Text(
+                  currentUser.displayName ?? 'Guest User',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                Text(
+                  currentUser.email ?? 'No email',
+                  style: TextStyle(fontSize: 10.sp, color: Colors.grey[700]),
+                ),
                 SizedBox(height: 3.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -217,9 +265,10 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("My Trips",
-                  style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
+              Text(
+                "My Trips",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+              ),
             ],
           ),
         ),
@@ -229,6 +278,7 @@ Widget buildProfileTab(BuildContext context, User? currentUser) {
   );
 }
 
+
 Widget _buildTripStat(User? user) {
   return FutureBuilder<int>(
     future: fetchTripCount(user),
@@ -237,6 +287,7 @@ Widget _buildTripStat(User? user) {
         return _buildStat("Trips", "...");
       }
       if (snapshot.hasError) {
+        debugPrint("Error loading trip count: ${snapshot.error}");
         return _buildStat("Trips", "0");
       }
       return _buildStat("Trips", snapshot.data?.toString() ?? "0");
@@ -252,6 +303,7 @@ Widget _buildSavedStat(User? user) {
         return _buildStat("Saved", "...");
       }
       if (snapshot.hasError) {
+        debugPrint("Error loading saved count: ${snapshot.error}");
         return _buildStat("Saved", "0");
       }
       return _buildStat("Saved", snapshot.data?.toString() ?? "0");
@@ -262,48 +314,65 @@ Widget _buildSavedStat(User? user) {
 Widget _buildLogoutStat(BuildContext context) {
   return GestureDetector(
     onTap: () async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text("Log Out"),
-      content: Text("Are you sure you want to log out?"),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text("Cancel")),
-        ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text("Log Out")),
-      ],
-    ),
-  );
-
-  if (confirm == true) {
-    final auth = FirebaseAuthService();
-    try {
-      await auth.signOut();
-
-      // 🛡️ context mounted эсэхийг шалгаж байж navigation хийх
-      if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/user-login',
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      debugPrint("❌ Sign out failed: $e");
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Logout failed. Please try again."),
-            backgroundColor: Colors.red,
+      try {
+        final confirm = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false, // Prevent dismissing by tapping outside
+          builder: (ctx) => AlertDialog(
+            title: Text("Log Out"),
+            content: Text("Are you sure you want to log out?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text("Log Out"),
+              ),
+            ],
           ),
         );
+
+        if (confirm == true && context.mounted) {
+          // Show loading indicator
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+
+          final auth = FirebaseAuthService();
+          await auth.signOut();
+
+          // Close loading dialog
+          if (context.mounted) {
+            Navigator.pop(context);
+            
+            // Navigate to login page
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/user-login',
+              (route) => false,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint("❌ Sign out failed: $e");
+        
+        // Close loading dialog if it's open
+        if (context.mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Logout failed. Please try again."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
-    }
-  }
-}
-,
+    },
     child: Column(
       children: [
         Icon(Icons.logout, color: Colors.red, size: 24),
@@ -319,15 +388,22 @@ Widget _buildStat(String label, String count) {
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      Text(count,
-          style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
-              color: Colors.black)),
+      Text(
+        count,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 16.sp,
+          color: Colors.black,
+        ),
+      ),
       SizedBox(height: 0.5.h),
-      Text(label,
-          style: TextStyle(
-              fontSize: 10.sp, color: Colors.grey[600] ?? Colors.grey)),
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 10.sp,
+          color: Colors.grey[600] ?? Colors.grey,
+        ),
+      ),
     ],
   );
 }
