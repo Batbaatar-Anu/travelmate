@@ -102,7 +102,7 @@ class _HomeDashboardState extends State<HomeDashboard>
 
   Stream<List<Map<String, dynamic>>> fetchSavedDestinations(String userId) {
     return FirebaseFirestore.instance
-        .collection('users')
+        .collection('user_profiles')
         .doc(userId)
         .collection('saved_destinations')
         .snapshots()
@@ -136,30 +136,30 @@ class _HomeDashboardState extends State<HomeDashboard>
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _getUserProfile();
+@override
+void initState() {
+  super.initState();
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
+  _tabController = TabController(length: 3, vsync: this);
+
+  // 🔐 Listen for auth changes (login/logout)
+  FirebaseAuth.instance.authStateChanges().listen((user) {
+    if (user == null) {
+      setState(() {
+        _currentUser = null;
+        savedDestinationIds.clear();
+        _currentUserProfile = null;
+      });
+    } else {
       setState(() {
         _currentUser = user;
       });
-
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('saved_destinations')
-          .snapshots()
-          .listen((snapshot) {
-        setState(() {
-          savedDestinationIds = snapshot.docs.map((doc) => doc.id).toSet();
-        });
-      });
     }
-  }
+  });
+
+  // 🧠 Get initial user
+  _currentUser = FirebaseAuth.instance.currentUser;
+}
 
   @override
 void dispose() {
@@ -210,7 +210,7 @@ void dispose() {
     if (user == null) return;
 
     final docRef = FirebaseFirestore.instance
-        .collection('users')
+        .collection('user_profiles')
         .doc(user.uid)
         .collection('saved_destinations')
         .doc(destinationId);
@@ -284,7 +284,7 @@ void dispose() {
       });
 
       final doc = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('user_profiles')
           .doc(user.uid)
           .get();
       if (doc.exists) {

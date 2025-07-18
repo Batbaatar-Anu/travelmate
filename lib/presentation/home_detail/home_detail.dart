@@ -149,7 +149,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
 
     try {
       final savedRef = FirebaseFirestore.instance
-          .collection('users')
+          .collection('user_profiles')
           .doc(user.uid)
           .collection('saved_destinations')
           .doc(_destinationId);
@@ -199,7 +199,7 @@ class _HomeDetailState extends State<HomeDetail> with TickerProviderStateMixin {
 
     try {
       final savedDoc = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('user_profiles')
           .doc(user.uid)
           .collection('saved_destinations')
           .doc(_destinationId)
