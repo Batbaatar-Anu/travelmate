@@ -25,7 +25,6 @@ void main() async {
 
   User? currentUser = FirebaseAuth.instance.currentUser;
 
-  // ✅ Алдаанаас хамгаалж currentUser.reload хийх
   try {
     if (currentUser != null) {
       await currentUser.reload();
@@ -33,7 +32,7 @@ void main() async {
     }
   } catch (e) {
     debugPrint('User reload failed: $e');
-    currentUser = null; // 👈 устгагдсан хэрэглэгч байж болно
+    currentUser = null;
   }
 
   String initialRoute;
@@ -46,7 +45,6 @@ void main() async {
     initialRoute = AppRoutes.userLogin;
   }
 
-  // 🔧 UI алдаа catcher
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return CustomErrorWidget(errorDetails: details);
   };
