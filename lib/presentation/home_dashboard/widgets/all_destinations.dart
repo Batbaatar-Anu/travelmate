@@ -6,6 +6,32 @@ import 'package:travelmate/presentation/home_dashboard/widgets/recommended_desti
 
 class AllDestinationsScreen extends StatelessWidget {
   const AllDestinationsScreen({super.key});
+Future<void> updateDestinationRating(String destinationId) async {
+  final reviewsSnap = await FirebaseFirestore.instance
+      .collection('destinations')
+      .doc(destinationId)
+      .collection('reviews')
+      .get();
+
+  if (reviewsSnap.docs.isEmpty) return;
+
+  final totalReviews = reviewsSnap.docs.length;
+  final totalRating = reviewsSnap.docs.fold<double>(
+    0,
+    (sum, doc) => sum + (doc['rating'] as num).toDouble(),
+  );
+
+  final avgRating = totalRating / totalReviews;
+
+  await FirebaseFirestore.instance
+      .collection('destinations')
+      .doc(destinationId)
+      .update({
+    'rating': avgRating,
+    'reviewCount': totalReviews,
+  });
+}
+
 
   Stream<List<Map<String, dynamic>>> fetchAllDestinations() {
     return FirebaseFirestore.instance

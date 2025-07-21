@@ -20,55 +20,80 @@ class _ReviewsSectionWidgetState extends State<ReviewsSectionWidget> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || _commentController.text.trim().isEmpty) return;
 
-    final userDoc = await FirebaseFirestore.instance
-        .collection('user_profiles')
-        .doc(user.uid)
-        .get();
-
-    final userData = userDoc.data() ?? {};
-
-    await FirebaseFirestore.instance
+    final reviewRef = FirebaseFirestore.instance
         .collection('destinations')
         .doc(widget.destinationId)
         .collection('reviews')
-        .add({
+        .doc();
+
+    final reviewData = {
       'userId': user.uid,
-      'userName': userData['full_name'],
-      'userAvatar': userData['photoUrl'] ?? '',
+      'userName': user.displayName ?? 'Unknown',
+      'userAvatar': user.photoURL ?? '',
       'rating': _rating,
       'comment': _commentController.text.trim(),
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
 
+    await reviewRef.set(reviewData);
     _commentController.clear();
     setState(() => _rating = 5);
+
+    // 🟡 Update average rating
+    await _updateAverageRating(widget.destinationId);
+
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('Сэтгэгдэл илгээгдлээ!')));
   }
 
+  Future<void> _updateAverageRating(String destinationId) async {
+    final reviewsSnap = await FirebaseFirestore.instance
+        .collection('destinations')
+        .doc(destinationId)
+        .collection('reviews')
+        .get();
+
+    if (reviewsSnap.docs.isEmpty) return;
+
+    final totalReviews = reviewsSnap.docs.length;
+    final totalRating = reviewsSnap.docs.fold<double>(
+      0,
+      (sum, doc) => sum + (doc['rating'] as num).toDouble(),
+    );
+
+    final avgRating = totalRating / totalReviews;
+
+    await FirebaseFirestore.instance
+        .collection('destinations')
+        .doc(destinationId)
+        .update({
+      'rating': avgRating,
+      'reviewCount': totalReviews,
+    });
+  }
+
   String _formatTimestamp(dynamic timestamp) {
-  // Check if the timestamp is null or not a valid Timestamp object
-  if (timestamp == null || timestamp is! Timestamp) {
-    return 'wait';
+    // Check if the timestamp is null or not a valid Timestamp object
+    if (timestamp == null || timestamp is! Timestamp) {
+      return 'wait';
+    }
+
+    final date = timestamp.toDate(); // Convert to DateTime
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays >= 7) {
+      return '${(difference.inDays / 7).floor()} долоо хоногийн өмнө';
+    } else if (difference.inDays >= 1) {
+      return '${difference.inDays} хоногийн өмнө';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours} цагийн өмнө';
+    } else if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes} минутын өмнө';
+    } else {
+      return 'Саяхан';
+    }
   }
-
-  final date = timestamp.toDate();  // Convert to DateTime
-  final now = DateTime.now();
-  final difference = now.difference(date);
-
-  if (difference.inDays >= 7) {
-    return '${(difference.inDays / 7).floor()} долоо хоногийн өмнө';
-  } else if (difference.inDays >= 1) {
-    return '${difference.inDays} хоногийн өмнө';
-  } else if (difference.inHours >= 1) {
-    return '${difference.inHours} цагийн өмнө';
-  } else if (difference.inMinutes >= 1) {
-    return '${difference.inMinutes} минутын өмнө';
-  } else {
-    return 'Саяхан';
-  }
-}
-
 
   Future<void> _deleteReview(String reviewId) async {
     final confirm = await showDialog<bool>(
@@ -249,101 +274,102 @@ class _ReviewsSectionWidgetState extends State<ReviewsSectionWidget> {
               SizedBox(height: 1.h),
               // 📄 Review List (доторх map loop хэсгийн нэг review item-ийн код)
               ...reviews.map((review) {
-  return Container(
-    margin: EdgeInsets.symmetric(vertical: 1.2.h, horizontal: 4.w),
-    padding: EdgeInsets.all(3.5.w),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.grey.withOpacity(0.15),
-          blurRadius: 6,
-          offset: Offset(0, 3),
-        ),
-      ],
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Profile Avatar
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: const Color(0xFFE0E0E0),
-          backgroundImage: (review['userAvatar'] != null &&
-                  review['userAvatar'].toString().isNotEmpty)
-              ? NetworkImage(review['userAvatar'])
-              : null,
-          child: (review['userAvatar'] == null ||
-                  review['userAvatar'].toString().isEmpty)
-              ? Icon(Icons.person, size: 26, color: Colors.grey)
-              : null,
-        ),
-        SizedBox(width: 3.5.w),
-
-        // Content
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Name & Timestamp & Delete
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Text(
-                      review['userName'] ?? 'Хэрэглэгч',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.sp,
+                return Container(
+                  margin:
+                      EdgeInsets.symmetric(vertical: 1.2.h, horizontal: 4.w),
+                  padding: EdgeInsets.all(3.5.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.15),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ],
                   ),
-                  if (review['userId'] ==
-                      FirebaseAuth.instance.currentUser?.uid)
-                    GestureDetector(
-                      onTap: () => _deleteReview(review.id),
-                      child: Icon(Icons.delete, color: Colors.red, size: 18),
-                    ),
-                  SizedBox(width: 1.w),
-                  Text(
-                    _formatTimestamp(review['createdAt']),
-                    style: TextStyle(fontSize: 9.sp, color: Colors.grey),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Profile Avatar
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundColor: const Color(0xFFE0E0E0),
+                        backgroundImage: (review['userAvatar'] != null &&
+                                review['userAvatar'].toString().isNotEmpty)
+                            ? NetworkImage(review['userAvatar'])
+                            : null,
+                        child: (review['userAvatar'] == null ||
+                                review['userAvatar'].toString().isEmpty)
+                            ? Icon(Icons.person, size: 26, color: Colors.grey)
+                            : null,
+                      ),
+                      SizedBox(width: 3.5.w),
+
+                      // Content
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Name & Timestamp & Delete
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    review['userName'] ?? 'Хэрэглэгч',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12.sp,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (review['userId'] ==
+                                    FirebaseAuth.instance.currentUser?.uid)
+                                  GestureDetector(
+                                    onTap: () => _deleteReview(review.id),
+                                    child: Icon(Icons.delete,
+                                        color: Colors.red, size: 18),
+                                  ),
+                                SizedBox(width: 1.w),
+                                Text(
+                                  _formatTimestamp(review['createdAt']),
+                                  style: TextStyle(
+                                      fontSize: 9.sp, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 0.6.h),
+
+                            // Rating
+                            Row(
+                              children: List.generate(
+                                5,
+                                (index) => Icon(
+                                  index < review['rating']
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  size: 14,
+                                  color: Colors.amber,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 0.6.h),
+
+                            // Comment
+                            Text(
+                              review['comment'] ?? '',
+                              style: TextStyle(fontSize: 10.sp, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              SizedBox(height: 0.6.h),
-
-              // Rating
-              Row(
-                children: List.generate(
-                  5,
-                  (index) => Icon(
-                    index < review['rating']
-                        ? Icons.star
-                        : Icons.star_border,
-                    size: 14,
-                    color: Colors.amber,
-                  ),
-                ), 
-              ),
-              SizedBox(height: 0.6.h),
-
-              // Comment
-              Text(
-                review['comment'] ?? '',
-                style: TextStyle(fontSize: 10.sp, height: 1.4),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}).toList()
-
-
+                );
+              }).toList()
             ],
           ),
         );
