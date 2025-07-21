@@ -751,7 +751,17 @@ class _HomeDashboardState extends State<HomeDashboard>
             ),
             SizedBox(height: 2.h),
             StreamBuilder<List<Map<String, dynamic>>>(
-              stream: streamPostedTrips(_currentUser!.uid),
+              stream: FirebaseFirestore.instance
+                  .collection('trips')
+                  .orderBy('date', descending: true)
+                  .snapshots()
+                  .map((snapshot) => snapshot.docs.map((doc) {
+                        final data = doc.data();
+                        return {
+                          ...data,
+                          'id': doc.id,
+                        };
+                      }).toList()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return _buildShimmerRecentTrips();

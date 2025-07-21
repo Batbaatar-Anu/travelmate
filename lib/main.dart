@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sizer/sizer.dart';
 
@@ -12,14 +14,31 @@ import 'package:travelmate/firebase_options.dart';
 import 'core/app_export.dart';
 import 'widgets/custom_error_widget.dart';
 
+Future<void> saveDeviceToken(String uid) async {
+  try {
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token != null) {
+      await FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(uid)
+          .update({'fcm_token': token});
+      debugPrint("✅ FCM token saved for user: $uid");
+    }
+  } catch (e) {
+    debugPrint("❌ Error saving FCM token: $e");
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
   await FirebaseMessagingService.instance.initFCM();
   await Config.load();
+
   final prefs = await SharedPreferences.getInstance();
   final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
 
@@ -40,10 +59,23 @@ void main() async {
   if (!hasSeenOnboarding) {
     initialRoute = AppRoutes.onboardingFlow;
   } else if (currentUser != null && currentUser.emailVerified) {
+    await saveDeviceToken(currentUser.uid); // ✅ Save token
     initialRoute = AppRoutes.homeDashboard;
   } else {
     initialRoute = AppRoutes.userLogin;
   }
+
+  // 🔁 Refresh token listener
+  FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(uid)
+          .update({'fcm_token': newToken});
+      debugPrint("🔄 Token refreshed and updated for $uid");
+    }
+  });
 
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return CustomErrorWidget(errorDetails: details);
