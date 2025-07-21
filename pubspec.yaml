@@ -3,6 +3,7 @@ description: A new Flutter project.
 version: 1.0.0+1
 environment: 
   sdk: ^3.6.0
+
 dependencies: 
   flutter: 
     sdk: flutter
@@ -31,12 +32,20 @@ dependencies:
   http: ^1.4.0
   flutter_dotenv: ^5.2.1
   shimmer: ^3.0.0
+
 dev_dependencies: 
   flutter_test: 
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
+
 flutter: 
   uses-material-design: true
   assets: 
     - assets/
     - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/Logo.png"
