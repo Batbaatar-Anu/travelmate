@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/SearchResultScreen.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/TripDetailScreen.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/all_destinations.dart';
+import 'package:travelmate/presentation/home_dashboard/widgets/map_screen.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/newtrip.dart';
 import '../presentation/onboarding_flow/onboarding_flow.dart';
 import '../presentation/user_login/user_login.dart';
@@ -22,6 +23,7 @@ class AppRoutes {
   static const String allDestinations = '/all-destinations';
   static const String tripDetail = '/trip-detail';
   static const String searchResult = '/search-result'; 
+  static const String map = '/map';
 
   static Map<String, WidgetBuilder> routes = {
     initial: (context) => const OnboardingFlow(),
@@ -33,6 +35,7 @@ class AppRoutes {
     homeDetail: (context) => const HomeDetail(),
     newTrip: (context) => const NewTripScreen(),
     allDestinations: (context) => const AllDestinationsScreen(),
+    map: (context) => const MapScreen(),
     tripDetail: (context) {
       final args =
           ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -48,6 +51,7 @@ class AppRoutes {
       final query = args is String && args.trim().isNotEmpty ? args : null;
 
       return SearchResultScreen(query: query ?? '');
+
     },
   };
 }

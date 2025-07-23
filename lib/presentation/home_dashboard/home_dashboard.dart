@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:sizer/sizer.dart';
+import 'package:travelmate/presentation/home_dashboard/widgets/map_screen.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:travelmate/presentation/home_dashboard/widgets/profiletab.dart';
 import 'package:travelmate/services/firebase_auth_service.dart';
@@ -21,7 +23,7 @@ class HomeDashboard extends StatefulWidget {
   @override
   State<HomeDashboard> createState() => _HomeDashboardState();
 }
-
+                 
 class _HomeDashboardState extends State<HomeDashboard>
     with TickerProviderStateMixin {
   int _currentTabIndex = 0;
@@ -348,7 +350,7 @@ class _HomeDashboardState extends State<HomeDashboard>
         ),
       );
     }
-
+/////////////////////////////////////////////////////////////////////
     return Scaffold(
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
       body: SafeArea(
@@ -358,7 +360,8 @@ class _HomeDashboardState extends State<HomeDashboard>
           child: CustomScrollView(
             controller: _scrollController,
             slivers: [
-              if (_currentTabIndex != 2) _buildStickyHeader(),
+              if (_currentTabIndex != 2 && _currentTabIndex != 3)
+                _buildStickyHeader(),
               if (_currentTabIndex == 0) ...[
                 _buildHeroSection(),
                 _buildRecommendedDestinationsSection(),
@@ -366,7 +369,15 @@ class _HomeDashboardState extends State<HomeDashboard>
               ],
               if (_currentTabIndex == 1)
                 _buildSavedDestinationsSection(_currentUser?.uid),
-              if (_currentTabIndex == 2) buildProfileTab(context, _currentUser),
+              if (_currentTabIndex == 2)
+                if (_currentTabIndex == 2)
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.8,
+                      child: const MapScreen(), // Scaffold байхгүй тул ажиллана
+                    ),
+                  ),
+              if (_currentTabIndex == 3) buildProfileTab(context, _currentUser),
               SliverToBoxAdapter(child: SizedBox(height: 10.h)),
             ],
           ),
@@ -1084,20 +1095,20 @@ class _HomeDashboardState extends State<HomeDashboard>
           ),
           label: 'Plan',
         ),
-        // BottomNavigationBarItem(
-        //   icon: CustomIconWidget(
-        //     iconName: 'notifications',
-        //     color: _currentTabIndex == 2
-        //         ? AppTheme.lightTheme.primaryColor
-        //         : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
-        //     size: 24,
-        //   ),
-        //   label: 'Notifications',
-        // ),
+        BottomNavigationBarItem(
+          icon: CustomIconWidget(
+            iconName: 'map',
+            color: _currentTabIndex == 2
+                ? AppTheme.lightTheme.primaryColor
+                : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
+            size: 24,
+          ),
+          label: 'Map',
+        ),
         BottomNavigationBarItem(
           icon: CustomIconWidget(
             iconName: 'person',
-            color: _currentTabIndex == 2
+            color: _currentTabIndex == 3
                 ? AppTheme.lightTheme.primaryColor
                 : AppTheme.lightTheme.colorScheme.onSurfaceVariant,
             size: 24,

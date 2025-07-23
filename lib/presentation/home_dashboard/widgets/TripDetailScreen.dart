@@ -2,7 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:travelmate/presentation/home_dashboard/widgets/tripedit.dart'; // For Timestamp
+import 'package:travelmate/presentation/home_dashboard/widgets/tripedit.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TripDetailScreen extends StatelessWidget {
   final Map<String, dynamic> trip;
@@ -18,6 +19,9 @@ class TripDetailScreen extends StatelessWidget {
             : 'https://via.placeholder.com/300');
 
     final String formattedDate = _formatTripDate(trip['date']);
+    final String destinationName = trip['destination']?.toString() ?? '';
+    final double? lat = trip['location']?['latitude'];
+    final double? lng = trip['location']?['longitude'];
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -56,13 +60,11 @@ class TripDetailScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              // Show buttons only if current user owns this trip
               if (trip['user_id'] ==
                   FirebaseAuth.instance.currentUser?.uid) ...[
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.white),
                   onPressed: () {
-                    // Navigate to edit screen
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -103,8 +105,7 @@ class TripDetailScreen extends StatelessWidget {
                           .delete();
 
                       if (context.mounted) {
-                        Navigator.pop(
-                            context); // Back to previous screen after delete
+                        Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text("Trip deleted successfully"),
@@ -124,7 +125,6 @@ class TripDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title, location, rating
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -141,12 +141,39 @@ class TripDetailScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              trip['subtitle']?.toString() ??
-                                  trip['destination']?.toString() ??
-                                  '',
-                              style: TextStyle(color: Colors.grey[700]),
-                            ),
+                            if (destinationName.isNotEmpty && lat != null && lng != null)
+                              InkWell(
+                                onTap: () async {
+                                  final Uri url = Uri.parse(
+                                      'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url,
+                                        mode: LaunchMode.externalApplication);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Could not open map."),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.location_on,
+                                        size: 16, color: Colors.blue),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        destinationName,
+                                        style: const TextStyle(
+                                          color: Colors.blue,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             if (formattedDate.isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Text(
@@ -186,7 +213,6 @@ class TripDetailScreen extends StatelessWidget {
     );
   }
 
-  /// Format Timestamp or String to readable date
   String _formatTripDate(dynamic date) {
     try {
       if (date is Timestamp) {
@@ -202,7 +228,6 @@ class TripDetailScreen extends StatelessWidget {
     return '';
   }
 
-  /// Highlights section
   Widget _buildHighlightsSection(Map trip) {
     final List highlights = trip['highlights'] ?? [];
     if (highlights.isEmpty) return const SizedBox.shrink();
@@ -243,7 +268,6 @@ class TripDetailScreen extends StatelessWidget {
     );
   }
 
-  /// Optional: Show photo gallery
   Widget _buildPhotoGallerySection(Map trip) {
     final List photos = trip['photos'] ?? [];
     if (photos.length <= 1) return const SizedBox.shrink();
@@ -271,8 +295,8 @@ class TripDetailScreen extends StatelessWidget {
                   width: 150,
                   height: 120,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                      width: 150, height: 120, color: Colors.grey[300]),
+                  errorBuilder: (_, __, ___) =>
+                      Container(width: 150, height: 120, color: Colors.grey[300]),
                 ),
               );
             },

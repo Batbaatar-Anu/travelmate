@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sizer/sizer.dart';
+import 'package:travelmate/presentation/home_dashboard/widgets/LocationPickerScreen.dart';
 
 class NewTripScreen extends StatefulWidget {
   const NewTripScreen({super.key});
@@ -17,9 +20,41 @@ class _NewTripScreenState extends State<NewTripScreen> {
   final _descriptionController = TextEditingController();
   final _imageUrlController = TextEditingController();
   bool _isLoading = false;
+  LatLng? _selectedLatLng;
+
+  /// Сонгосон координатаас газрын нарийвчилсан нэрийг авч 'Очих газар'-т оруулна
+  Future<void> _updateLocationName(LatLng latLng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        latLng.latitude,
+        latLng.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+
+        final name = [
+          place.name,
+          place.subLocality,
+          place.locality,
+          place.administrativeArea,
+          place.country,
+        ].where((e) => e != null && e.isNotEmpty).join(", ");
+
+        _destinationController.text = name;
+      }
+    } catch (e) {
+      debugPrint("Reverse geocoding failed: $e");
+    }
+  }
 
   Future<void> _saveTrip() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedLatLng == null) {
+      _showSnackBar('Байршил сонгоно уу', isError: true);
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -37,6 +72,10 @@ class _NewTripScreenState extends State<NewTripScreen> {
       'image': _imageUrlController.text.trim(),
       'description': _descriptionController.text.trim(),
       'rating': 0.0,
+      'location': {
+        'latitude': _selectedLatLng!.latitude,
+        'longitude': _selectedLatLng!.longitude,
+      },
       'date': FieldValue.serverTimestamp(),
     };
 
@@ -56,8 +95,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
       SnackBar(
         content: Row(
           children: [
-            Icon(isError ? Icons.error : Icons.check_circle,
-                color: Colors.white),
+            Icon(isError ? Icons.error : Icons.check_circle, color: Colors.white),
             SizedBox(width: 12),
             Expanded(child: Text(message)),
           ],
@@ -107,6 +145,28 @@ class _NewTripScreenState extends State<NewTripScreen> {
               SizedBox(height: 2.h),
               _buildInput("Очих газар", _destinationController,
                   hint: "Жишээ: Улаанбаатар, Монгол", requiredField: true),
+              SizedBox(height: 3.h),
+              Text(
+                _selectedLatLng != null
+                    ? "Сонгосон байршил: ${_selectedLatLng!.latitude.toStringAsFixed(5)}, ${_selectedLatLng!.longitude.toStringAsFixed(5)}"
+                    : "Байршил сонгоогүй байна",
+                style: TextStyle(fontSize: 13.sp),
+              ),
+              SizedBox(height: 1.h),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => LocationPickerScreen()),
+                  );
+                  if (result != null && result is LatLng) {
+                    setState(() => _selectedLatLng = result);
+                    await _updateLocationName(result);
+                  }
+                },
+                icon: Icon(Icons.location_on),
+                label: Text("Байршил сонгох"),
+              ),
               SizedBox(height: 4.h),
               SizedBox(
                 width: double.infinity,
@@ -152,8 +212,7 @@ class _NewTripScreenState extends State<NewTripScreen> {
         TextFormField(
           controller: controller,
           validator: requiredField
-              ? (val) =>
-                  val == null || val.isEmpty ? '$title шаардлагатай' : null
+              ? (val) => val == null || val.isEmpty ? '$title шаардлагатай' : null
               : null,
           maxLines: maxLines,
           keyboardType: keyboardType,
