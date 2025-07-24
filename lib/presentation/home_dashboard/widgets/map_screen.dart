@@ -586,110 +586,113 @@ class _MapScreenState extends State<MapScreen> {
             child: _buildTopInfoCard(),
           ),
 
-          // 📜 Route History Bottom Sheet
-          // DraggableScrollableSheet(
-          //   initialChildSize: 0.35,
-          //   minChildSize: 0.1,
-          //   maxChildSize: 0.4,
-          //   builder: (context, scrollController) {
-          //     return Container(
-          //       decoration: BoxDecoration(
-          //         color: Colors.white,
-          //         borderRadius: const BorderRadius.only(
-          //           topLeft: Radius.circular(16),
-          //           topRight: Radius.circular(16),
-          //         ),
-          //         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
-          //       ),
-          //       child: Column(
-          //         children: [
-          //           // ⬍ Drag Handle
-          //           Padding(
-          //             padding: const EdgeInsets.symmetric(vertical: 12),
-          //             child: Container(
-          //               width: 40,
-          //               height: 5,
-          //               decoration: BoxDecoration(
-          //                 color: Colors.grey[300],
-          //                 borderRadius: BorderRadius.circular(3),
-          //               ),
-          //             ),
-          //           ),
+          DraggableScrollableSheet(
+            initialChildSize: 0.35,
+            minChildSize: 0.1,
+            maxChildSize: 0.4,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                ),
+                child: CustomScrollView(
+                  controller: scrollController,
+                  slivers: [
+                    // ⬍ Drag Handle
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: Container(
+                            width: 40,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Маршрутын түүх",
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
 
-          //           // 📌 Header + Close
-          //           Padding(
-          //             padding: const EdgeInsets.symmetric(horizontal: 16),
-          //             child: Row(
-          //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //               children: [
-          //                 const Text(
-          //                   "Маршрутын түүх",
-          //                   style: TextStyle(
-          //                       fontSize: 18, fontWeight: FontWeight.bold),
-          //                 ),
-          //                 IconButton(
-          //                   icon: const Icon(Icons.close),
-          //                   onPressed: _clearCurrentRoute,
-          //                 ),
-          //               ],
-          //             ),
-          //           ),
-          //           const Divider(height: 1),
+                    const SliverToBoxAdapter(child: Divider(height: 1)),
 
-          //           // 📜 Firebase GPS Sessions List
-          //           // Expanded(
-          //           //   child: StreamBuilder<QuerySnapshot>(
-          //           //     stream: FirebaseFirestore.instance
-          //           //         .collection('user_profiles')
-          //           //         .doc(FirebaseAuth.instance.currentUser!.uid)
-          //           //         .collection('gps_sessions')
-          //           //         .orderBy('created_date', descending: true)
-          //           //         .snapshots(),
-          //           //     builder: (context, snapshot) {
-          //           //       if (!snapshot.hasData) {
-          //           //         return const Center(
-          //           //             child: CircularProgressIndicator());
-          //           //       }
+                    // 📍 Route List
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('user_profiles')
+                          .doc(FirebaseAuth.instance.currentUser!.uid)
+                          .collection('gps_sessions')
+                          .orderBy('created_date', descending: true)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const SliverFillRemaining(
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
 
-          //           //       final sessions = snapshot.data!.docs;
-          //           //       if (sessions.isEmpty) {
-          //           //         return const Center(child: Text('Түүх алга байна'));
-          //           //       }
+                        final sessions = snapshot.data!.docs;
+                        if (sessions.isEmpty) {
+                          return const SliverFillRemaining(
+                            child: Center(child: Text('Түүх алга байна')),
+                          );
+                        }
 
-          //           //       return ListView.builder(
-          //           //         controller: scrollController,
-          //           //         itemCount: sessions.length,
-          //           //         itemBuilder: (context, index) {
-          //           //           final doc = sessions[index];
-          //           //           final sessionId = doc.id;
-          //           //           final routeName =
-          //           //               doc['route_name'] ?? 'Нэргүй маршрут';
-          //           //           final createdDate = doc['created_date'];
-          //           //           final formattedDate = createdDate != null
-          //           //               ? (createdDate as Timestamp)
-          //           //                   .toDate()
-          //           //                   .toString()
-          //           //                   .substring(0, 19)
-          //           //               : 'Огноо алга';
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final doc = sessions[index];
+                              final sessionId = doc.id;
+                              final routeName =
+                                  doc['route_name'] ?? 'Нэргүй маршрут';
+                              final createdDate = doc['created_date'];
+                              final formattedDate = createdDate != null
+                                  ? (createdDate as Timestamp)
+                                      .toDate()
+                                      .toString()
+                                      .substring(0, 19)
+                                  : 'Огноо алга';
 
-          //           //           return ListTile(
-          //           //             leading: const Icon(Icons.map),
-          //           //             title: Text(routeName),
-          //           //             subtitle: Text('Огноо: $formattedDate'),
-          //           //             onTap: () {
-          //           //               _loadSessionLocations(sessionId, routeName);
-          //           //             },
-          //           //           );
-          //           //         },
-          //           //       );
-          //           //     },
-          //           //   ),
-          //           // ),
-          //         ],
-          //       ),
-          //     );
-          //   },
-          // ),
+                              return ListTile(
+                                leading: const Icon(Icons.map),
+                                title: Text(routeName),
+                                subtitle: Text('Огноо: $formattedDate'),
+                                onTap: () {
+                                  _loadSessionLocations(sessionId, routeName);
+                                },
+                              );
+                            },
+                            childCount: sessions.length,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ],
       ),
 

@@ -350,6 +350,12 @@ class _HomeDashboardState extends State<HomeDashboard>
         ),
       );
     }
+    if (_currentTabIndex == 2) {
+      return Scaffold(
+        body: const MapScreen(),
+        bottomNavigationBar: _buildBottomNavigationBar(),
+      );
+    }
 /////////////////////////////////////////////////////////////////////
     return Scaffold(
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
@@ -369,14 +375,6 @@ class _HomeDashboardState extends State<HomeDashboard>
               ],
               if (_currentTabIndex == 1)
                 _buildSavedDestinationsSection(_currentUser?.uid),
-              if (_currentTabIndex == 2)
-                if (_currentTabIndex == 2)
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.8,
-                      child: const MapScreen(), // Scaffold байхгүй тул ажиллана
-                    ),
-                  ),
               if (_currentTabIndex == 3) buildProfileTab(context, _currentUser),
               SliverToBoxAdapter(child: SizedBox(height: 10.h)),
             ],
@@ -1120,8 +1118,6 @@ class _HomeDashboardState extends State<HomeDashboard>
   }
 
   Widget? _buildFloatingActionButton() {
-    if (_currentTabIndex == 2) return null; // 👈 Hide FAB on map tab
-
     return FloatingActionButton.extended(
       onPressed: () => Navigator.pushNamed(context, '/new-trip'),
       backgroundColor: AppTheme.lightTheme.colorScheme.secondary,
