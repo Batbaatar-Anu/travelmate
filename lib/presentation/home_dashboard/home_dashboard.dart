@@ -23,7 +23,7 @@ class HomeDashboard extends StatefulWidget {
   @override
   State<HomeDashboard> createState() => _HomeDashboardState();
 }
-                 
+
 class _HomeDashboardState extends State<HomeDashboard>
     with TickerProviderStateMixin {
   int _currentTabIndex = 0;
@@ -1119,7 +1119,9 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-  Widget _buildFloatingActionButton() {
+  Widget? _buildFloatingActionButton() {
+    if (_currentTabIndex == 2) return null; // 👈 Hide FAB on map tab
+
     return FloatingActionButton.extended(
       onPressed: () => Navigator.pushNamed(context, '/new-trip'),
       backgroundColor: AppTheme.lightTheme.colorScheme.secondary,
