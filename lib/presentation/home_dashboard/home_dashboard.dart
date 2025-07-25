@@ -1095,7 +1095,7 @@ class _HomeDashboardState extends State<HomeDashboard>
         ),
         BottomNavigationBarItem(
           icon: CustomIconWidget(
-            iconName: 'map',
+            iconName: 'pin_drop',
             color: _currentTabIndex == 2
                 ? AppTheme.lightTheme.primaryColor
                 : AppTheme.lightTheme.colorScheme.onSurfaceVariant,

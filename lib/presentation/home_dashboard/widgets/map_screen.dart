@@ -15,6 +15,7 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   LatLng? _currentPosition;
   final List<LatLng> _loggedLocations = [];
+  final List<LatLng> _smoothedLocations = []; // For smoothed polyline
   final List<Map<String, dynamic>> _logJson = [];
   final Completer<GoogleMapController> _controllerCompleter = Completer();
 
@@ -23,9 +24,9 @@ class _MapScreenState extends State<MapScreen> {
   double _totalDistance = 0.0;
   int _totalPoints = 0;
   String? _currentSessionId;
-  String? _selectedSessionId;
   String _selectedRouteTitle = '';
   bool _isViewingHistory = false;
+  bool _useSmoothPolyline = true; // Toggle for smooth polyline
 
   // Enhanced route naming
   final TextEditingController _routeNameController = TextEditingController();
@@ -45,6 +46,138 @@ class _MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
+  // Smooth polyline methods
+  List<LatLng> _applySmoothingFilter(List<LatLng> points) {
+    if (points.length < 3) return points;
+
+    List<LatLng> smoothed = [];
+    smoothed.add(points.first); // Keep first point
+
+    // Apply simple moving average smoothing
+    for (int i = 1; i < points.length - 1; i++) {
+      double avgLat = (points[i - 1].latitude +
+              points[i].latitude +
+              points[i + 1].latitude) /
+          3;
+      double avgLng = (points[i - 1].longitude +
+              points[i].longitude +
+              points[i + 1].longitude) /
+          3;
+      smoothed.add(LatLng(avgLat, avgLng));
+    }
+
+    smoothed.add(points.last); // Keep last point
+    return smoothed;
+  }
+
+  List<LatLng> _interpolatePoints(List<LatLng> points,
+      {int segmentPoints = 5}) {
+    if (points.length < 2) return points;
+
+    List<LatLng> interpolated = [];
+
+    for (int i = 0; i < points.length - 1; i++) {
+      LatLng start = points[i];
+      LatLng end = points[i + 1];
+
+      interpolated.add(start);
+
+      // Add intermediate points between start and end
+      for (int j = 1; j < segmentPoints; j++) {
+        double ratio = j / segmentPoints;
+        double lat = start.latitude + (end.latitude - start.latitude) * ratio;
+        double lng =
+            start.longitude + (end.longitude - start.longitude) * ratio;
+        interpolated.add(LatLng(lat, lng));
+      }
+    }
+
+    interpolated.add(points.last);
+    return interpolated;
+  }
+
+  List<LatLng> _removeNoisyPoints(List<LatLng> points,
+      {double threshold = 10.0}) {
+    if (points.length < 3) return points;
+
+    List<LatLng> filtered = [points.first];
+
+    for (int i = 1; i < points.length - 1; i++) {
+      LatLng prev = filtered.last;
+      LatLng current = points[i];
+      LatLng next = points[i + 1];
+
+      // Calculate distance from current point to line between prev and next
+      double distance = _pointToLineDistance(current, prev, next);
+
+      // Only add point if it's significantly different from the straight line
+      if (distance > threshold) {
+        filtered.add(current);
+      }
+    }
+
+    filtered.add(points.last);
+    return filtered;
+  }
+
+  double _pointToLineDistance(LatLng point, LatLng lineStart, LatLng lineEnd) {
+    double A = point.latitude - lineStart.latitude;
+    double B = point.longitude - lineStart.longitude;
+    double C = lineEnd.latitude - lineStart.latitude;
+    double D = lineEnd.longitude - lineStart.longitude;
+
+    double dot = A * C + B * D;
+    double lenSq = C * C + D * D;
+
+    if (lenSq == 0) {
+      return Geolocator.distanceBetween(point.latitude, point.longitude,
+          lineStart.latitude, lineStart.longitude);
+    }
+
+    double param = dot / lenSq;
+
+    double xx, yy;
+    if (param < 0) {
+      xx = lineStart.latitude;
+      yy = lineStart.longitude;
+    } else if (param > 1) {
+      xx = lineEnd.latitude;
+      yy = lineEnd.longitude;
+    } else {
+      xx = lineStart.latitude + param * C;
+      yy = lineStart.longitude + param * D;
+    }
+
+    return Geolocator.distanceBetween(point.latitude, point.longitude, xx, yy);
+  }
+
+  void _updateSmoothedPolyline() {
+    if (_loggedLocations.length < 2) {
+      _smoothedLocations.clear();
+      return;
+    }
+
+    List<LatLng> processed = List.from(_loggedLocations);
+
+    // Step 1: Remove noisy points
+    processed = _removeNoisyPoints(processed, threshold: 5.0);
+
+    // Step 2: Apply smoothing filter
+    processed = _applySmoothingFilter(processed);
+
+    // Step 3: Interpolate points for smoother curves
+    processed = _interpolatePoints(processed, segmentPoints: 3);
+
+    // Step 4: Optional: Apply Bezier curves for very smooth appearance
+    // processed = _createBezierCurve(processed);
+
+    setState(() {
+      _smoothedLocations.clear();
+      _smoothedLocations.addAll(processed);
+    });
+  }
+
+  // Your existing methods remain the same...
   Future<void> _initializeAndLoad() async {
     final isAllowed = await _checkPermissions();
     if (isAllowed) {
@@ -116,6 +249,20 @@ class _MapScreenState extends State<MapScreen> {
               ),
               maxLength: 50,
             ),
+            // Add smooth polyline toggle
+            Row(
+              children: [
+                Checkbox(
+                  value: _useSmoothPolyline,
+                  onChanged: (value) {
+                    setState(() {
+                      _useSmoothPolyline = value ?? true;
+                    });
+                  },
+                ),
+                const Text('Гөлгөр зураас ашиглах'),
+              ],
+            ),
           ],
         ),
         actions: [
@@ -141,6 +288,7 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+//GPS анхны цэг авах
   Future<void> _getInitialPositionOnly() async {
     try {
       final position = await Geolocator.getCurrentPosition(
@@ -192,7 +340,6 @@ class _MapScreenState extends State<MapScreen> {
       }
 
       setState(() {
-        _selectedSessionId = sessionId;
         _selectedRouteTitle = routeTitle;
         _isViewingHistory = true;
         _loggedLocations.clear();
@@ -202,6 +349,9 @@ class _MapScreenState extends State<MapScreen> {
         _totalPoints = points.length;
         _calculateTotalDistance();
       });
+
+      // Update smoothed polyline for history
+      _updateSmoothedPolyline();
 
       if (points.isNotEmpty) {
         await _animateToPosition(points.first, zoom: 15);
@@ -258,6 +408,9 @@ class _MapScreenState extends State<MapScreen> {
         _calculateTotalDistance();
       });
 
+      // Update smoothed polyline after adding new point
+      _updateSmoothedPolyline();
+
       await _animateToPosition(latLng);
     } catch (e) {
       debugPrint('Error recording position: $e');
@@ -292,15 +445,14 @@ class _MapScreenState extends State<MapScreen> {
         _isTracking = true;
         _currentSessionId = sessionId;
         _isViewingHistory = false;
-        _selectedSessionId = null;
         _loggedLocations.clear();
+        _smoothedLocations.clear();
         _logJson.clear();
         _totalPoints = 0;
         _totalDistance = 0.0;
       });
 
       await _recordCurrentPosition();
-      // Record every 1 minute for precise tracking
       _timer = Timer.periodic(
           const Duration(minutes: 1), (_) => _recordCurrentPosition());
 
@@ -342,18 +494,6 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  void _clearCurrentRoute() {
-    setState(() {
-      _loggedLocations.clear();
-      _logJson.clear();
-      _totalPoints = 0;
-      _totalDistance = 0.0;
-      _isViewingHistory = false;
-      _selectedSessionId = null;
-      _selectedRouteTitle = '';
-    });
-    _showSnackBar('Маршрут цэвэрлэгдлээ');
-  }
 
   void _calculateTotalDistance() {
     if (_loggedLocations.length < 2) {
@@ -370,6 +510,26 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
     _totalDistance = distance;
+  }
+
+  void _deleteSession(String sessionId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Delete the specific session from Firestore
+      await FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(user.uid)
+          .collection('gps_sessions')
+          .doc(sessionId)
+          .delete();
+
+      _showSnackBar('Маршрут устгагдлаа');
+    } catch (e) {
+      debugPrint('Error deleting session: $e');
+      _showSnackBar('Маршрут устгах үед алдаа гарлаа');
+    }
   }
 
   Set<Marker> _buildMarkers() {
@@ -414,15 +574,26 @@ class _MapScreenState extends State<MapScreen> {
     Color routeColor = _isViewingHistory ? Colors.purple : Colors.blue;
     if (_isTracking) routeColor = Colors.red;
 
+    // Use smoothed locations if enabled and available
+    List<LatLng> polylinePoints =
+        _useSmoothPolyline && _smoothedLocations.isNotEmpty
+            ? _smoothedLocations
+            : _loggedLocations;
+
     return {
       Polyline(
         polylineId: const PolylineId('route'),
         color: routeColor,
         width: 5,
-        points: _loggedLocations,
+        points: polylinePoints,
         patterns: _isViewingHistory
             ? [PatternItem.dash(15), PatternItem.gap(10)]
             : [],
+        // Add these properties for smoother appearance
+        geodesic: true,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        jointType: JointType.round,
       ),
     };
   }
@@ -432,9 +603,6 @@ class _MapScreenState extends State<MapScreen> {
     return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-  }
 
   Widget _buildTopInfoCard() {
     return Container(
@@ -487,6 +655,24 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
+              ),
+              // Add toggle for smooth polyline
+              IconButton(
+                icon: Icon(
+                  _useSmoothPolyline ? Icons.timeline : Icons.show_chart,
+                  color: _useSmoothPolyline ? Colors.blue : Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _useSmoothPolyline = !_useSmoothPolyline;
+                  });
+                  if (_useSmoothPolyline) {
+                    _updateSmoothedPolyline();
+                  }
+                  _showSnackBar(_useSmoothPolyline
+                      ? 'Гөлгөр зураас идэвхжлээ'
+                      : 'Энгийн зураас идэвхжлээ');
+                },
               ),
             ],
           ),
@@ -545,8 +731,6 @@ class _MapScreenState extends State<MapScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // CircularProgressIndicator(),
-              // SizedBox(height: 16),
               Text('GPS байршил хайж байна...'),
             ],
           ),
@@ -629,12 +813,11 @@ class _MapScreenState extends State<MapScreen> {
                               "Маршрутын түүх",
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.bold),
-                            )
+                            ),
                           ],
                         ),
                       ),
                     ),
-
                     const SliverToBoxAdapter(child: Divider(height: 1)),
 
                     // 📍 Route List
@@ -675,9 +858,16 @@ class _MapScreenState extends State<MapScreen> {
                                   : 'Огноо алга';
 
                               return ListTile(
-                                leading: const Icon(Icons.map),
+                                leading: const Icon(Icons.pin),
                                 title: Text(routeName),
                                 subtitle: Text('Огноо: $formattedDate'),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () {
+                                    // Implement your delete logic here
+                                    _deleteSession(sessionId);
+                                  },
+                                ),
                                 onTap: () {
                                   _loadSessionLocations(sessionId, routeName);
                                 },
@@ -697,20 +887,15 @@ class _MapScreenState extends State<MapScreen> {
       ),
 
       // ▶️ Floating Action Button (Start/Stop Tracking)
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: "track",
-            onPressed: _isTracking ? _stopTracking : _showRouteNameDialog,
-            backgroundColor: _isTracking ? Colors.red : Colors.green,
-            child: Icon(
-              _isTracking ? Icons.stop : Icons.play_arrow,
-              size: 32,
-            ),
-          ),
-        ],
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: FloatingActionButton(
+        heroTag: "track",
+        onPressed: _isTracking ? _stopTracking : _showRouteNameDialog,
+        backgroundColor: _isTracking ? Colors.red : Colors.green,
+        child: Icon(
+          _isTracking ? Icons.stop : Icons.play_arrow,
+          size: 32,
+        ),
       ),
     );
   }
